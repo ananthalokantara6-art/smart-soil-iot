@@ -22,7 +22,7 @@ M1 validasi -> M2 transport -> M3 simpan -> M4 analitik -> M5 pakar tanaman -> M
 | Kontrak | `soil_contracts` | Tipe dan trait bersama (milik lead) | Lead |
 | Orchestrator | `soil_server` | Menyambungkan semua modul | Lead |
 
-## Aturan emas
+## Aturan 
 
 1. Modul **hanya** bergantung pada `soil_contracts`. Tidak boleh saling import.
 2. Penyambungan dilakukan di `apps/soil_server` lewat `Arc<dyn Trait>`.
