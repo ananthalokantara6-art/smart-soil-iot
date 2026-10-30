@@ -1,0 +1,13 @@
+[package]
+name = "m2_gateway"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+soil_contracts = { workspace = true }
+async-trait = { workspace = true }
+
+[dev-dependencies]
+soil_contracts = { workspace = true, features = ["mock"] }
+tokio = { workspace = true }
+chrono = { workspace = true }

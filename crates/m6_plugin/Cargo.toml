@@ -1,0 +1,10 @@
+[package]
+name = "m6_plugin"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+soil_contracts = { workspace = true }
+
+[dev-dependencies]
+async-trait = { workspace = true }

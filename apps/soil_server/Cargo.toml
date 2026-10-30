@@ -1,0 +1,15 @@
+[package]
+name = "soil_server"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+soil_contracts = { workspace = true, features = ["mock"] }
+m1_sensing = { workspace = true }
+m2_gateway = { workspace = true }
+m3_platform = { workspace = true }
+m4_analytics = { workspace = true }
+m5_expert = { workspace = true }
+m6_plugin = { workspace = true }
+chrono = { workspace = true }
+tokio = { workspace = true }

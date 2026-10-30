@@ -1,0 +1,41 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/soil_contracts",
+    "crates/m1_sensing",
+    "crates/m2_gateway",
+    "crates/m3_platform",
+    "crates/m4_analytics",
+    "crates/m5_expert",
+    "crates/m6_plugin",
+    "apps/soil_server",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.80"
+
+# Versi dependensi bersama dikunci oleh project lead.
+# Di Cargo.toml modul, tulis:  axum = { workspace = true }
+# Butuh dependensi baru? Minta lead menambahkannya di sini lewat PR.
+[workspace.dependencies]
+# crate internal
+soil_contracts = { path = "crates/soil_contracts" }
+m1_sensing = { path = "crates/m1_sensing" }
+m2_gateway = { path = "crates/m2_gateway" }
+m3_platform = { path = "crates/m3_platform" }
+m4_analytics = { path = "crates/m4_analytics" }
+m5_expert = { path = "crates/m5_expert" }
+m6_plugin = { path = "crates/m6_plugin" }
+
+# versi bersama
+tokio = { version = "1", features = ["full"] }
+axum = "0.8"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+async-trait = "0.1"
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1", features = ["v4", "serde"] }
+thiserror = "2"
+tracing = "0.1"

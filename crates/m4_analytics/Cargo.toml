@@ -1,0 +1,13 @@
+[package]
+name = "m4_analytics"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+soil_contracts = { workspace = true }
+async-trait = { workspace = true }
+chrono = { workspace = true }
+
+[dev-dependencies]
+soil_contracts = { workspace = true, features = ["mock"] }
+tokio = { workspace = true }

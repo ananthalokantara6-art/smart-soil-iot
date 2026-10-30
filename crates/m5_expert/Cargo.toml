@@ -1,0 +1,12 @@
+[package]
+name = "m5_expert"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+soil_contracts = { workspace = true }
+async-trait = { workspace = true }
+chrono = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true }

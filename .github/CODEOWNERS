@@ -1,0 +1,15 @@
+# Ganti @username-kelompok-N dengan akun GitHub ketua kelompok N.
+# Kontrak, orchestrator, CI, dan docs hanya boleh diubah oleh project lead.
+
+/crates/soil_contracts/   @ananthalokantara6-art
+/apps/soil_server/        @ananthalokantara6-art
+/Cargo.toml               @ananthalokantara6-art
+/.github/                 @ananthalokantara6-art
+/docs/*.md                @ananthalokantara6-art
+
+/crates/m1_sensing/       @username-kelompok-1
+/crates/m2_gateway/       @username-kelompok-2
+/crates/m3_platform/      @username-kelompok-3
+/crates/m4_analytics/     @username-kelompok-4
+/crates/m5_expert/        @username-kelompok-5
+/crates/m6_plugin/        @username-kelompok-6

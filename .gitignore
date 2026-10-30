@@ -1,0 +1,13 @@
+# Build artifacts
+target/
+**/target/
+
+# OS / editor
+.DS_Store
+**/.DS_Store
+.idea/
+.vscode/
+
+# Env / secrets
+.env
+*.pem

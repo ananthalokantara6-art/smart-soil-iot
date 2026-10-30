@@ -1,0 +1,11 @@
+[package]
+name = "m1_sensing"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+soil_contracts = { workspace = true }
+
+[dev-dependencies]
+soil_contracts = { workspace = true, features = ["mock"] }
+chrono = { workspace = true }
