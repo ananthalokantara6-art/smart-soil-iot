@@ -1,6 +1,8 @@
 //! Anggota 4: Deteksi anomali agroekologi dan validasi fisik sensor.
 
-use soil_contracts::{Anomaly, Parameter, ReadingWindow, RiskKind, RiskLevel, RiskScore, Confidence};
+use soil_contracts::{
+    Anomaly, Confidence, Parameter, ReadingWindow, RiskKind, RiskLevel, RiskScore,
+};
 
 /// Validasi rentang nilai fisik pembacaan sensor.
 pub fn is_physically_valid(moisture: f32, ph: f32, ec: f32) -> bool {
@@ -25,7 +27,10 @@ pub fn detect_anomalies(window: &ReadingWindow) -> Vec<Anomaly> {
             anomalies.push(Anomaly {
                 ts: r.ts,
                 parameter: Parameter::Ec,
-                description: format!("Stres salinitas terdeteksi: EC tinggi ({:.2} mS/cm)", r.ec_ms_cm),
+                description: format!(
+                    "Stres salinitas terdeteksi: EC tinggi ({:.2} mS/cm)",
+                    r.ec_ms_cm
+                ),
                 severity: RiskLevel::High,
             });
         }
