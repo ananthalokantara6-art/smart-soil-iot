@@ -1,9 +1,7 @@
 //! Anggota 1: Pipeline orkestrasi fungsional monadik.
 
 use chrono::Utc;
-use soil_contracts::{
-    AnalysisResult, Confidence, Parameter, Provenance, ReadingWindow,
-};
+use soil_contracts::{AnalysisResult, Confidence, Parameter, Provenance, ReadingWindow};
 
 use crate::analytics::{anomaly, statistics, trends};
 use crate::error::{Result, SoilError};
@@ -16,8 +14,8 @@ pub fn process_soil_pipeline(window: &ReadingWindow) -> Result<AnalysisResult> {
         return Err(SoilError::EmptyDataset);
     }
 
-    let values: Vec<f32> = moisture.iter().map(|(_, v)| *v).collect();
-    let mean_val = statistics::mean(&values).ok_or(SoilError::EmptyDataset)?;
+    let values: Vec<f64> = moisture.iter().map(|(_, v)| f64::from(*v)).collect();
+    let mean_val = statistics::mean(&values).ok_or(SoilError::EmptyDataset)? as f32;
 
     let n = moisture.len() as f32;
     let confidence = Confidence::new(n / 30.0);

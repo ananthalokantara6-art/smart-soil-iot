@@ -82,7 +82,11 @@ mod tests {
             .analyze(&window(92.0, 30, QualityFlag::Good))
             .await
             .unwrap();
-        let wet = r.risks.iter().find(|x| x.kind == RiskKind::Waterlogging).unwrap();
+        let wet = r
+            .risks
+            .iter()
+            .find(|x| x.kind == RiskKind::Waterlogging)
+            .unwrap();
         assert!(wet.level >= RiskLevel::High);
     }
 
@@ -92,7 +96,11 @@ mod tests {
             .analyze(&window(25.0, 30, QualityFlag::Good))
             .await
             .unwrap();
-        let dry = r.risks.iter().find(|x| x.kind == RiskKind::Dryness).unwrap();
+        let dry = r
+            .risks
+            .iter()
+            .find(|x| x.kind == RiskKind::Dryness)
+            .unwrap();
         assert!(dry.level >= RiskLevel::High);
     }
 }
