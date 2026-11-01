@@ -1,21 +1,38 @@
 //! M3 - Soil Data Platform and Visualization.
 //!
-//! Implementasi awal: penyimpanan di memori untuk pembacaan dan peringatan.
-//! TODO kelompok 3: REST API (Axum), database time-series, agregasi, dashboard, filter alert.
+//! Penyimpanan di memori untuk pembacaan, peringatan, dan metadata petak (Progress 2),
+//! ditambah REST API (Axum), agregasi time-series, filter alert, dan dashboard.
+//! TODO kelompok 3: database time-series sebagai pengganti `MemoryPlatform`.
 
+pub mod aggregate;
+pub mod alerts;
+pub mod api;
+pub mod overview;
+pub mod plots;
+
+use std::collections::{HashMap, HashSet};
 use std::sync::Mutex;
 
+use aggregate::{validate_integrity, validate_reading};
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
+use plots::PlotMeta;
 use soil_contracts::{
-    Alert, AlertSink, ContractError, PlotId, ReadingSink, ReadingSource, ReadingWindow, Result,
-    SoilReading,
+    Alert, AlertSink, ContractError, DeviceId, PlotId, ReadingSink, ReadingSource, ReadingWindow,
+    Result, SoilReading,
 };
 
 #[derive(Default)]
+struct ReadingStore {
+    readings: Vec<SoilReading>,
+    seen: HashSet<(DeviceId, i64)>,
+}
+
+#[derive(Default)]
 pub struct MemoryPlatform {
-    readings: Mutex<Vec<SoilReading>>,
+    store: Mutex<ReadingStore>,
     alerts: Mutex<Vec<Alert>>,
+    plots: Mutex<HashMap<PlotId, PlotMeta>>,
 }
 
 fn poisoned() -> ContractError {
@@ -27,7 +44,40 @@ impl MemoryPlatform {
         Self::default()
     }
 
-    /// Riwayat peringatan satu petak, terbaru terakhir.
+    pub fn ingest_checked(&self, reading: SoilReading) -> Result<bool> {
+        validate_reading(&reading)?;
+        validate_integrity(&reading, Utc::now())?;
+
+        let key = (reading.device_id, reading.ts.timestamp_millis());
+        let mut store = self.store.lock().map_err(|_| poisoned())?;
+
+        if !store.seen.insert(key) {
+            return Ok(false);
+        }
+
+        store.readings.push(reading);
+        Ok(true)
+    }
+
+    pub fn register_plot(&self, meta: PlotMeta) -> Result<()> {
+        self.plots
+            .lock()
+            .map_err(|_| poisoned())?
+            .insert(meta.plot_id, meta);
+        Ok(())
+    }
+
+    pub fn list_plots(&self) -> Result<Vec<PlotMeta>> {
+        let guard = self.plots.lock().map_err(|_| poisoned())?;
+        let mut all: Vec<PlotMeta> = guard.values().cloned().collect();
+        all.sort_by(|a, b| a.name.cmp(&b.name));
+        Ok(all)
+    }
+
+    pub fn all_alerts(&self) -> Result<Vec<Alert>> {
+        Ok(self.alerts.lock().map_err(|_| poisoned())?.clone())
+    }
+
     pub fn alerts_for(&self, plot_id: &PlotId) -> Result<Vec<Alert>> {
         let guard = self.alerts.lock().map_err(|_| poisoned())?;
         Ok(guard
@@ -41,7 +91,7 @@ impl MemoryPlatform {
 #[async_trait]
 impl ReadingSink for MemoryPlatform {
     async fn ingest(&self, reading: SoilReading) -> Result<()> {
-        self.readings.lock().map_err(|_| poisoned())?.push(reading);
+        self.ingest_checked(reading)?;
         Ok(())
     }
 }
@@ -54,8 +104,9 @@ impl ReadingSource for MemoryPlatform {
         from: DateTime<Utc>,
         to: DateTime<Utc>,
     ) -> Result<ReadingWindow> {
-        let guard = self.readings.lock().map_err(|_| poisoned())?;
+        let guard = self.store.lock().map_err(|_| poisoned())?;
         let mut readings: Vec<SoilReading> = guard
+            .readings
             .iter()
             .filter(|r| r.plot_id == *plot_id && r.ts >= from && r.ts <= to)
             .cloned()
@@ -70,8 +121,9 @@ impl ReadingSource for MemoryPlatform {
     }
 
     async fn latest(&self, plot_id: &PlotId) -> Result<Option<SoilReading>> {
-        let guard = self.readings.lock().map_err(|_| poisoned())?;
+        let guard = self.store.lock().map_err(|_| poisoned())?;
         Ok(guard
+            .readings
             .iter()
             .filter(|r| r.plot_id == *plot_id)
             .max_by_key(|r| r.ts)
@@ -88,65 +140,5 @@ impl AlertSink for MemoryPlatform {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use chrono::Duration;
-    use soil_contracts::{AlertLevel, DeviceId, Provenance, QualityFlag};
-
-    fn reading(plot: PlotId, ts: DateTime<Utc>) -> SoilReading {
-        SoilReading {
-            device_id: DeviceId::new(),
-            plot_id: plot,
-            ts,
-            moisture_pct: 60.0,
-            temperature_c: 27.0,
-            ph: 4.0,
-            ec_ms_cm: 0.5,
-            quality: QualityFlag::Good,
-        }
-    }
-
-    #[tokio::test]
-    async fn ingest_then_query_window() {
-        let p = MemoryPlatform::new();
-        let plot = PlotId::new();
-        let t0 = Utc::now();
-        for i in 0..6 {
-            p.ingest(reading(plot, t0 + Duration::minutes(i)))
-                .await
-                .unwrap();
-        }
-        p.ingest(reading(PlotId::new(), t0)).await.unwrap();
-
-        let w = p
-            .window(&plot, t0, t0 + Duration::minutes(2))
-            .await
-            .unwrap();
-        assert_eq!(w.readings.len(), 3);
-        let latest = p.latest(&plot).await.unwrap().unwrap();
-        assert_eq!(latest.ts, t0 + Duration::minutes(5));
-    }
-
-    #[tokio::test]
-    async fn alerts_are_stored() {
-        let p = MemoryPlatform::new();
-        let plot = PlotId::new();
-        p.raise(Alert {
-            plot_id: plot,
-            ts: Utc::now(),
-            level: AlertLevel::Warning,
-            message: "uji".into(),
-            provenance: Provenance {
-                source: "test".into(),
-                version: "0".into(),
-                method: "manual".into(),
-                inputs: vec![],
-                generated_at: Utc::now(),
-            },
-        })
-        .await
-        .unwrap();
-        assert_eq!(p.alerts_for(&plot).unwrap().len(), 1);
-        assert!(p.alerts_for(&PlotId::new()).unwrap().is_empty());
-    }
-}
+#[path = "tests/lib.rs"]
+mod tests;

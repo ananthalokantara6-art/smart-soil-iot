@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Smart Soil IoT - Pemantauan Lahan Gambut</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<aside class="side">
+  <div class="brand">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 3c3 4 6 6.5 6 10a6 6 0 0 1-12 0c0-3.5 3-6 6-10z"/></svg>
+    <b>Smart Soil IoT</b><span>Pemantauan Lahan Gambut</span>
+  </div>
+  <nav id="nav">
+    <a href="#ringkasan" class="on"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>Dashboard</a>
+    <a href="#petak"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6v6H9z"/></svg>Petak &amp; Perangkat</a>
+    <a href="#grafik"><svg viewBox="0 0 24 24"><path d="M3 17l5-6 4 3 8-9"/></svg>Grafik Tren</a>
+    <a href="#peta"><svg viewBox="0 0 24 24"><path d="M3 3h4v4H3zM10 3h4v4h-4zM17 3h4v4h-4zM3 10h4v4H3zM10 10h4v4h-4zM17 10h4v4h-4z"/></svg>Peta Status</a>
+    <a href="#banding"><svg viewBox="0 0 24 24"><path d="M6 20V10M12 20V4M18 20v-7"/></svg>Perbandingan</a>
+    <a href="#peringatan"><svg viewBox="0 0 24 24"><path d="M12 3l10 18H2z"/><path d="M12 10v4M12 17.5v.5"/></svg>Peringatan</a>
+  </nav>
+</aside>
+
+<div class="content">
+  <div class="bar">
+    <div class="card filters">
+      <label for="selPetak">Petak</label><select id="selPetak"></select>
+      <label for="selRentang">Rentang</label>
+      <select id="selRentang">
+        <option value="1">1 jam</option><option value="6">6 jam</option>
+        <option value="24" selected>24 jam</option><option value="168">7 hari</option>
+      </select>
+      <button id="btnReset" type="button" class="ghost">Reset</button>
+      <button id="btnMuat" type="button" class="primary">Muat ulang</button>
+    </div>
+    <div class="card period">
+      <small>Periode terpilih</small>
+      <b id="periodTxt">24 jam terakhir</b>
+      <span class="live"><i></i>Aktif · <em id="updTxt">-</em></span>
+    </div>
+  </div>
+
+  <div id="banner" class="banner" role="status" hidden></div>
+
+  <section id="ringkasan">
+    <h2>Ringkasan kondisi</h2>
+    <div id="kpi" class="grid kpi">Memuat...</div>
+    <p id="batas" class="note"></p>
+  </section>
+
+  <section id="petak">
+    <h2>Petak dan status perangkat</h2>
+    <div id="petakList" class="grid"></div>
+  </section>
+
+  <section id="grafik" class="card">
+    <h2>Grafik tren</h2>
+    <div class="chips" role="tablist" aria-label="Parameter"></div>
+    <div id="legend" class="legend"></div>
+    <div class="scroll"><canvas id="chart" height="280"></canvas></div>
+  </section>
+
+  <section id="peta" class="card">
+    <h2>Peta status per jam</h2>
+    <div class="chips" role="tablist" aria-label="Parameter"></div>
+    <div id="heat" class="heat"></div>
+    <div class="legend key"><span><i class="l0"></i>Aman</span><span><i class="l1"></i>Waspada</span><span><i class="l2"></i>Bahaya</span></div>
+  </section>
+
+  <section id="banding" class="two">
+    <div class="card">
+      <h2>Perbandingan antar petak</h2>
+      <div class="row"><label for="selParam">Parameter</label><select id="selParam"></select></div>
+      <div id="bars" class="bars"></div>
+    </div>
+    <div class="card">
+      <h2>Komposisi status</h2>
+      <div id="donut" class="donutbox"></div>
+    </div>
+  </section>
+
+  <section id="peringatan" class="card">
+    <h2>Riwayat peringatan</h2>
+    <div class="row"><label for="selLevel">Level minimum</label>
+      <select id="selLevel"><option value="0">Semua</option><option value="1">Waspada</option><option value="2">Bahaya</option></select></div>
+    <div class="scroll"><table>
+      <thead><tr><th>#</th><th>Waktu</th><th>Petak</th><th>Pesan</th><th>Level</th><th>Aksi</th></tr></thead>
+      <tbody id="alertBody"></tbody>
+    </table></div>
+  </section>
+</div>
+
+<script src="/script.js"></script>
+</body>
+</html>
