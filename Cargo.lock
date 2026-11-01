@@ -230,6 +230,7 @@ dependencies = [
  "async-trait",
  "chrono",
  "soil_contracts",
+ "thiserror",
  "tokio",
 ]
 
