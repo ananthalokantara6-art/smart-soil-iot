@@ -4,6 +4,8 @@
 //! TODO kelompok 4: deteksi anomali pH/EC, tren, prediksi, rekomendasi irigasi, ketidakpastian
 //! yang lebih baik (interval kepercayaan).
 
+pub mod analytics;
+
 use std::sync::Arc;
 
 use async_trait::async_trait;
