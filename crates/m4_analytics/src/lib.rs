@@ -4,6 +4,7 @@ pub mod analytics;
 pub mod decision;
 pub mod error;
 pub mod pipeline;
+pub mod presentation;
 
 use std::sync::Arc;
 
