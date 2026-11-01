@@ -29,4 +29,7 @@ Status: `todo` / `partial` / `done`.
 | M6-02 | M6 | Enable/disable plugin | `m6_plugin::tests::disabled_plugin_is_hidden` | done |
 | E2E-01 | Semua | Sensor -> validasi -> simpan -> analitik -> rekomendasi | `apps/soil_server/tests/e2e.rs` | done |
 
+Unit test statistik Anggota 2: `cargo test --lib analytics::statistics`
+(`src/analytics/statistics_tests.rs`). Integration test lama tetap dipertahankan.
+
 Tambahkan baris baru setiap kali fitur ditambah. Kelompok mengisi baris modulnya sendiri.

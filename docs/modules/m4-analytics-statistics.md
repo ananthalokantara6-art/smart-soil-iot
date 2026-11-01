@@ -30,12 +30,18 @@
   kelembapan non-finite tanpa mengubah input.
 - NaN, infinity, dan overflow mengikuti IEEE 754. Fungsi tidak memvalidasi sensor
   atau menghapus sampel invalid; pemanggil bertanggung jawab atas validasi input.
-- Trait bersama dan pipeline `ThresholdAnalyzer` tidak diubah. Helper ini belum
-  menggantikan perhitungan rata-rata `f32` yang sudah digunakan pipeline.
+- Kontrak bersama tetap. Pipeline menggunakan mean f64 melalui konversi data
+  sensor f32, lalu mengembalikan hasil ke f32 untuk evaluasi risiko.
+- EMA menggunakan fold per prefiks tanpa assignment state lokal. Trade-off:
+  waktu O(n²), sehingga ditujukan untuk jendela data terbatas.
 
 ## Verifikasi
 
-`cargo test -p m4_analytics --test analytics_tests`
+`cargo test --lib analytics::statistics`
+
+Unit test berada di `src/analytics/statistics_tests.rs`, dimuat sebagai
+`analytics::statistics::tests`. Integration test tetap tersedia melalui
+`cargo test -p m4_analytics --test analytics_tests`.
 
 Tes mencakup rata-rata, input tidak berubah, determinisme, input kosong,
 satu elemen, nilai negatif/nol, pecahan, nilai non-finite, dan overflow.

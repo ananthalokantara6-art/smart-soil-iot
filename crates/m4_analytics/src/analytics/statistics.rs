@@ -78,16 +78,20 @@ pub fn exponential_moving_average(alpha: f64) -> impl Fn(&[f64]) -> Vec<Option<f
             return values.iter().map(|_| None).collect();
         }
 
-        values
-            .iter()
-            .scan(None, |previous, value| {
-                let current = match *previous {
-                    None => *value,
-                    Some(previous) => alpha * *value + (1.0 - alpha) * previous,
-                };
-                *previous = Some(current);
-                Some(Some(current))
+        // Setiap prefiks direduksi tanpa state mutable; biaya O(n²).
+        (1..=values.len())
+            .map(|end| {
+                values[..end].iter().copied().fold(None, |previous, value| {
+                    Some(match previous {
+                        None => value,
+                        Some(previous) => alpha * value + (1.0 - alpha) * previous,
+                    })
+                })
             })
             .collect()
     }
 }
+
+#[cfg(test)]
+#[path = "statistics_tests.rs"]
+mod tests;
