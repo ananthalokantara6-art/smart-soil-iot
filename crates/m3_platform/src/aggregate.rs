@@ -1,6 +1,8 @@
 use chrono::{DateTime, TimeZone, Utc};
 use serde::Serialize;
-use soil_contracts::{ContractError, Parameter, PlotId, QualityFlag, Result, SoilReading, TrendDirection,};
+use soil_contracts::{
+    ContractError, Parameter, PlotId, QualityFlag, Result, SoilReading, TrendDirection,
+};
 use std::collections::BTreeMap;
 
 // agregasi

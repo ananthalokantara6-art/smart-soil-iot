@@ -12,7 +12,7 @@ Status: `todo` / `partial` / `done`.
 | M2-02 | M2 | Buffering offline dan kirim ulang | - | todo |
 | M2-03 | M2 | Autentikasi dan RBAC | - | todo |
 | M3-01 | M3 | Ingest lalu query jendela waktu | `m3_platform::tests` | done |
-| M3-02 | M3 | REST API dan dashboard | - | todo |
+| M3-02 | M3 | REST API dan dashboard | - | partial |
 | M3-03 | M3 | Riwayat peringatan | `m3_platform::tests::alerts_are_stored` | done |
 | M4-01 | M4 | Skor risiko waterlogging dan kekeringan | `m4_analytics::tests` | partial |
 | M4-02 | M4 | Confidence dan provenance pada hasil | `m4_analytics::tests::result_has_provenance_and_confidence` | done |

@@ -1,4 +1,3 @@
-
 use super::*;
 use chrono::Duration;
 use soil_contracts::{AlertLevel, DeviceId, Provenance, QualityFlag};
@@ -122,7 +121,12 @@ fn plots_are_listed_by_name() {
         .unwrap();
         p.register_plot(meta).unwrap();
     }
-    let names: Vec<String> = p.list_plots().unwrap().into_iter().map(|m| m.name).collect();
+    let names: Vec<String> = p
+        .list_plots()
+        .unwrap()
+        .into_iter()
+        .map(|m| m.name)
+        .collect();
     assert_eq!(names, vec!["Petak A", "Petak B"]);
 }
 

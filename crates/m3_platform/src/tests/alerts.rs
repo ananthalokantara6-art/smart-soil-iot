@@ -126,4 +126,3 @@ fn empty_input_gives_empty_output() {
     assert!(filter_alerts(&[], &AlertFilter::default()).is_empty());
     assert!(dedupe_alerts(&[], Duration::minutes(1)).is_empty());
 }
-

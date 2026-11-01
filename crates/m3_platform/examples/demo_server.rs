@@ -1,11 +1,11 @@
 //Server demo M3 dengan data palsu, agar dashboard bisa dilihat tanpa M1/M2.
 
-use std::sync::Arc;
 use chrono::{Duration, Utc};
 use m3_platform::plots::{NewPlot, PlotMeta};
 use m3_platform::{api, MemoryPlatform};
 use soil_contracts::mock::FakeSensorGenerator;
 use soil_contracts::{Alert, AlertLevel, AlertSink, DeviceId, PlotId, Provenance, QualityFlag};
+use std::sync::Arc;
 
 fn plot(name: &str, lat: f64, lon: f64, ha: f64, plant: &str) -> PlotMeta {
     PlotMeta::from_new(NewPlot {

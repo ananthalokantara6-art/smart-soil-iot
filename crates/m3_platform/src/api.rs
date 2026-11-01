@@ -1,6 +1,6 @@
 use crate::aggregate::{
-    auto_interval_secs, bucketize, period_change, rank_by_mean, sensor_health, summarize, 
-    Bucket, Change, Health, ParamSummary,
+    auto_interval_secs, bucketize, period_change, rank_by_mean, sensor_health, summarize, Bucket,
+    Change, Health, ParamSummary,
 };
 use crate::alerts::{filter_and_dedupe, AlertFilter};
 use crate::overview::{build_plot_overview, OverviewWindow, PlotOverview};

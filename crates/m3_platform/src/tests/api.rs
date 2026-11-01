@@ -147,7 +147,14 @@ async fn post_reading_then_read_latest_and_reject_duplicate() {
     assert_eq!(status, 409);
     assert_eq!(json(&resp)["inserted"], false);
 
-    let (status, resp) = call(addr, "GET", &format!("/api/v1/plots/{plot}/latest"), &[], "").await;
+    let (status, resp) = call(
+        addr,
+        "GET",
+        &format!("/api/v1/plots/{plot}/latest"),
+        &[],
+        "",
+    )
+    .await;
     assert_eq!(status, 200);
     assert!(json(&resp)["moisture_pct"].is_number());
 }
@@ -167,11 +174,17 @@ async fn invalid_readings_are_rejected() {
     let mut bad = sample(PlotId::new(), Utc::now());
     bad.moisture_pct = 150.0;
     let body = serde_json::to_string(&bad).unwrap();
-    assert_eq!(call(addr, "POST", "/api/v1/readings", &[], &body).await.0, 400);
+    assert_eq!(
+        call(addr, "POST", "/api/v1/readings", &[], &body).await.0,
+        400
+    );
 
     let future = sample(PlotId::new(), Utc::now() + Duration::days(30));
     let body = serde_json::to_string(&future).unwrap();
-    assert_eq!(call(addr, "POST", "/api/v1/readings", &[], &body).await.0, 400);
+    assert_eq!(
+        call(addr, "POST", "/api/v1/readings", &[], &body).await.0,
+        400
+    );
 
     // JSON rusak ditolak oleh extractor (bukan 2xx)
     let (status, _) = call(addr, "POST", "/api/v1/readings", &[], "{bukan json").await;
@@ -204,21 +217,38 @@ async fn write_endpoints_require_token_when_configured() {
     let addr = spawn(app).await;
     let body = serde_json::to_string(&sample(PlotId::new(), Utc::now())).unwrap();
 
-    assert_eq!(call(addr, "POST", "/api/v1/readings", &[], &body).await.0, 401);
     assert_eq!(
-        call(addr, "POST", "/api/v1/readings", &[("x-api-key", "salah")], &body)
-            .await
-            .0,
+        call(addr, "POST", "/api/v1/readings", &[], &body).await.0,
         401
     );
     assert_eq!(
-        call(addr, "POST", "/api/v1/readings", &[("x-api-key", "rahasia")], &body)
-            .await
-            .0,
+        call(
+            addr,
+            "POST",
+            "/api/v1/readings",
+            &[("x-api-key", "salah")],
+            &body
+        )
+        .await
+        .0,
+        401
+    );
+    assert_eq!(
+        call(
+            addr,
+            "POST",
+            "/api/v1/readings",
+            &[("x-api-key", "rahasia")],
+            &body
+        )
+        .await
+        .0,
         202
     );
     assert_eq!(
-        call(addr, "POST", "/api/v1/plots", &[], r#"{"name":"Petak X"}"#).await.0,
+        call(addr, "POST", "/api/v1/plots", &[], r#"{"name":"Petak X"}"#)
+            .await
+            .0,
         401
     );
     assert_eq!(
@@ -311,8 +341,30 @@ async fn compare_validates_input_and_ranks_plots() {
     }
     let addr = spawn(router(platform)).await;
 
-    assert_eq!(call(addr, "GET", "/api/v1/compare?plots=&param=moisture", &[], "").await.0, 400);
-    assert_eq!(call(addr, "GET", "/api/v1/compare?plots=x&param=moisture", &[], "").await.0, 400);
+    assert_eq!(
+        call(
+            addr,
+            "GET",
+            "/api/v1/compare?plots=&param=moisture",
+            &[],
+            ""
+        )
+        .await
+        .0,
+        400
+    );
+    assert_eq!(
+        call(
+            addr,
+            "GET",
+            "/api/v1/compare?plots=x&param=moisture",
+            &[],
+            ""
+        )
+        .await
+        .0,
+        400
+    );
 
     let ok = format!("/api/v1/compare?plots={a},{b}&param=moisture");
     let (status, resp) = call(addr, "GET", &ok, &[], "").await;
@@ -341,10 +393,24 @@ async fn alerts_can_be_filtered_and_deduplicated() {
     let (_, all) = call(addr, "GET", "/api/v1/alerts", &[], "").await;
     assert_eq!(json(&all).as_array().unwrap().len(), 4);
 
-    let (_, one_plot) = call(addr, "GET", &format!("/api/v1/alerts?plot_id={plot}"), &[], "").await;
+    let (_, one_plot) = call(
+        addr,
+        "GET",
+        &format!("/api/v1/alerts?plot_id={plot}"),
+        &[],
+        "",
+    )
+    .await;
     assert_eq!(json(&one_plot).as_array().unwrap().len(), 3);
 
-    let (_, deduped) = call(addr, "GET", &format!("/api/v1/alerts?plot_id={plot}&dedupe_secs=3600"), &[], "").await;
+    let (_, deduped) = call(
+        addr,
+        "GET",
+        &format!("/api/v1/alerts?plot_id={plot}&dedupe_secs=3600"),
+        &[],
+        "",
+    )
+    .await;
     assert_eq!(json(&deduped).as_array().unwrap().len(), 1);
 
     let (_, none) = call(addr, "GET", "/api/v1/alerts?level=critical", &[], "").await;
@@ -369,7 +435,10 @@ async fn overview_returns_actual_data_for_dashboard() {
     let _empty = register(&platform, "Petak Kosong");
     for minutes_ago in [30, 5, 1] {
         platform
-            .ingest_checked(sample(with_data, Utc::now() - Duration::minutes(minutes_ago)))
+            .ingest_checked(sample(
+                with_data,
+                Utc::now() - Duration::minutes(minutes_ago),
+            ))
             .unwrap();
     }
     platform
@@ -389,8 +458,14 @@ async fn overview_returns_actual_data_for_dashboard() {
 
     let plots = v["plots"].as_array().unwrap();
     assert_eq!(plots.len(), 2);
-    let active = plots.iter().find(|p| p["plot"]["name"] == "Petak Aktif").unwrap();
-    let empty = plots.iter().find(|p| p["plot"]["name"] == "Petak Kosong").unwrap();
+    let active = plots
+        .iter()
+        .find(|p| p["plot"]["name"] == "Petak Aktif")
+        .unwrap();
+    let empty = plots
+        .iter()
+        .find(|p| p["plot"]["name"] == "Petak Kosong")
+        .unwrap();
 
     assert!(active["latest"]["moisture_pct"].is_number());
     assert_eq!(active["series"]["moisture"].as_array().unwrap().len(), 6);

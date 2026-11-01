@@ -104,7 +104,10 @@ fn latest_prefers_usable_over_newer_bad_reading() {
 
     let only_bad = vec![reading(t0(), 999.0, QualityFlag::Bad)];
     let fallback = reading(t0(), 1.0, QualityFlag::Bad);
-    assert_eq!(pick_latest(&only_bad, Some(fallback.clone())), Some(fallback));
+    assert_eq!(
+        pick_latest(&only_bad, Some(fallback.clone())),
+        Some(fallback)
+    );
 }
 
 #[test]
