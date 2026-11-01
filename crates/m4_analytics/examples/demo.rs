@@ -25,7 +25,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     let window = store.window(&plot, t0, Utc::now()).await?;
-    println!("    Berhasil memuat {} pembacaan tervalidasi.", window.readings.len());
+    println!(
+        "    Berhasil memuat {} pembacaan tervalidasi.",
+        window.readings.len()
+    );
 
     println!("\n[2] Mengeksekusi Pipeline Analitik Fungsional M4...");
     let analyzer = ThresholdAnalyzer;
@@ -33,19 +36,29 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("\n[3] Hasil Evaluasi Mutu & Risiko Tanah:");
     println!("    Plot ID       : {}", result.plot_id);
-    println!("    Rentang Waktu : {} s/d {}", result.window_from, result.window_to);
+    println!(
+        "    Rentang Waktu : {} s/d {}",
+        result.window_from, result.window_to
+    );
     println!("    Jumlah Sampel : {}", result.sample_count);
 
     println!("\n--- Skor Risiko Lingkungan ---");
     for r in &result.risks {
-        println!("  * {:?}: Skor = {:.2}, Tingkat = {:?}, Kepercayaan = {:.2}",
-            r.kind, r.score, r.level, r.confidence.value());
+        println!(
+            "  * {:?}: Skor = {:.2}, Tingkat = {:?}, Kepercayaan = {:.2}",
+            r.kind,
+            r.score,
+            r.level,
+            r.confidence.value()
+        );
     }
 
     println!("\n--- Evaluasi Tren Deret Waktu ---");
     for t in &result.trends {
-        println!("  * Parameter {:?}: Arah = {:?}, Kemiringan/jam = {:.4}",
-            t.parameter, t.direction, t.slope_per_hour);
+        println!(
+            "  * Parameter {:?}: Arah = {:?}, Kemiringan/jam = {:.4}",
+            t.parameter, t.direction, t.slope_per_hour
+        );
     }
 
     println!("\n--- Deteksi Anomali ---");
@@ -58,7 +71,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     println!("\n--- Provenance Keputusan (Audibilitas FP) ---");
-    println!("  * Sumber Modul : {} (v{})", result.provenance.source, result.provenance.version);
+    println!(
+        "  * Sumber Modul : {} (v{})",
+        result.provenance.source, result.provenance.version
+    );
     println!("  * Metode       : {}", result.provenance.method);
     for inp in &result.provenance.inputs {
         println!("    - {}", inp);
