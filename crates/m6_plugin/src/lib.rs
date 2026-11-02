@@ -22,6 +22,7 @@ pub enum PluginState {
 #[derive(Default)]
 pub struct PluginRegistry {
     metas: HashMap<String, PluginMeta>,
+    plugins: HashMap<String, Arc<dyn Plugin>>,
     analyzers: Vec<Arc<dyn Analyzer>>,
     evaluators: Vec<Arc<dyn RuleEvaluator>>,
     disabled: HashSet<String>,
@@ -34,27 +35,59 @@ impl PluginRegistry {
     }
 
     /// Memasang plugin: periksa kompatibilitas dan duplikasi, lalu biarkan plugin mendaftar.
-    pub fn install(&mut self, plugin: &dyn Plugin) -> Result<()> {
+    pub fn install(&mut self, plugin: Arc<dyn Plugin>) -> Result<()> {
         let meta = plugin.meta();
+
         if !meta.is_compatible() {
             return Err(ContractError::Plugin(format!(
                 "plugin {} butuh kontrak MAJOR {}, tidak kompatibel",
                 meta.id, meta.requires_contracts_major
             )));
         }
+
         if self.metas.contains_key(&meta.id) {
             return Err(ContractError::Plugin(format!(
                 "plugin {} sudah terpasang",
                 meta.id
             )));
         }
+
         plugin.register(self)?;
 
         self.states
             .insert(meta.id.clone(), PluginState::Installed);
 
+        self.plugins.insert(meta.id.clone(), plugin);
+
         self.metas.insert(meta.id.clone(), meta);
+
         Ok(())
+    }
+
+    pub fn initialize(&mut self, id: &str) -> Result<()> {
+        let plugin = self.plugins
+            .get(id)
+            .cloned()
+            .ok_or_else(|| ContractError::NotFound(format!("plugin {id}")))?;
+
+        let state = self.get_state(id)?;
+
+        if state != PluginState::Installed && state != PluginState::Stopped {
+            return Err(ContractError::Plugin(format!(
+                "plugin {id} cannot be initialized from state {state:?}"
+            )));
+        }
+
+        match plugin.init() {
+            Ok(()) => {
+                self.states.insert(id.to_string(), PluginState::Running);
+                Ok(())
+            }
+            Err(err) => {
+                self.states.insert(id.to_string(), PluginState::Failed);
+                Err(err)
+            }
+        }
     }
 
     /// Daftar plugin terpasang, urut berdasarkan id.
@@ -117,6 +150,7 @@ impl PluginHost for PluginRegistry {
     }
 }
 
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -161,10 +195,10 @@ mod tests {
     #[test]
     fn install_registers_analyzer() {
         let mut reg = PluginRegistry::new();
-        reg.install(&Dummy {
+        reg.install(Arc::new(Dummy {
             id: "t.a",
             major: 0,
-        })
+        }))
         .unwrap();
         assert_eq!(reg.analyzers().len(), 1);
         assert_eq!(reg.list().len(), 1);
@@ -173,11 +207,11 @@ mod tests {
     #[test]
     fn incompatible_plugin_is_rejected() {
         let mut reg = PluginRegistry::new();
-        let err = reg
-            .install(&Dummy {
+        let err = reg.
+            install(Arc::new(Dummy {
                 id: "t.a",
                 major: 99,
-            })
+            }))
             .unwrap_err();
         assert!(matches!(err, ContractError::Plugin(_)));
         assert!(reg.analyzers().is_empty());
@@ -186,26 +220,25 @@ mod tests {
     #[test]
     fn duplicate_plugin_is_rejected() {
         let mut reg = PluginRegistry::new();
-        reg.install(&Dummy {
+        reg.install(Arc::new(Dummy {
             id: "t.a",
             major: 0,
-        })
+        }))
         .unwrap();
-        assert!(reg
-            .install(&Dummy {
+        assert!(reg.install(Arc::new(Dummy {
                 id: "t.a",
-                major: 0
-            })
+                major: 0,
+            }))
             .is_err());
     }
 
     #[test]
     fn disabled_plugin_is_hidden() {
         let mut reg = PluginRegistry::new();
-        reg.install(&Dummy {
+        reg.install(Arc::new(Dummy {
             id: "t.a",
             major: 0,
-        })
+        }))
         .unwrap();
         reg.set_enabled("t.a", false).unwrap();
         assert!(reg.analyzers().is_empty());
@@ -218,15 +251,47 @@ mod tests {
     fn installed_plugin_has_installed_state() {
         let mut reg = PluginRegistry::new();
 
-        reg.install(&Dummy {
+        reg.install(Arc::new(Dummy {
             id: "t.a",
             major: 0,
-        })
+        }))
         .unwrap();
-
         assert_eq!(
             reg.get_state("t.a").unwrap(),
             PluginState::Installed
         );
+    }
+
+    #[test]
+    fn initialize_plugin_changes_state_to_running() {
+        let mut reg = PluginRegistry::new();
+
+        reg.install(Arc::new(Dummy {
+            id: "t.a",
+            major: 0,
+        }))
+        .unwrap();
+
+        reg.initialize("t.a").unwrap();
+
+        assert_eq!(
+            reg.get_state("t.a").unwrap(),
+            PluginState::Running
+        );
+    }
+
+    #[test]
+    fn initialize_twice_fails() {
+        let mut reg = PluginRegistry::new();
+
+        reg.install(Arc::new(Dummy {
+            id: "t.a",
+            major: 0,
+        }))
+        .unwrap();
+
+        reg.initialize("t.a").unwrap();
+
+        assert!(reg.initialize("t.a").is_err());
     }
 }
