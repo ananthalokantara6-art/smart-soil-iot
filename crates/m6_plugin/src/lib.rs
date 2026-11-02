@@ -11,12 +11,21 @@ use soil_contracts::{
     Analyzer, ContractError, Plugin, PluginHost, PluginMeta, Result, RuleEvaluator,
 };
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PluginState {
+    Installed,
+    Running,
+    Stopped,
+    Failed,
+}
+
 #[derive(Default)]
 pub struct PluginRegistry {
     metas: HashMap<String, PluginMeta>,
     analyzers: Vec<Arc<dyn Analyzer>>,
     evaluators: Vec<Arc<dyn RuleEvaluator>>,
     disabled: HashSet<String>,
+    states: HashMap<String, PluginState>,
 }
 
 impl PluginRegistry {
@@ -40,6 +49,10 @@ impl PluginRegistry {
             )));
         }
         plugin.register(self)?;
+
+        self.states
+            .insert(meta.id.clone(), PluginState::Installed);
+
         self.metas.insert(meta.id.clone(), meta);
         Ok(())
     }
@@ -83,6 +96,14 @@ impl PluginRegistry {
             .filter(|e| !self.disabled.contains(&e.meta().id))
             .cloned()
             .collect()
+    }
+
+    /// Dapatkan state dari plugin
+    pub fn get_state(&self, id: &str) -> Result<PluginState> {
+        self.states
+            .get(id)
+            .copied()
+            .ok_or_else(|| ContractError::NotFound(format!("plugin {id}")))
     }
 }
 
@@ -191,5 +212,21 @@ mod tests {
         reg.set_enabled("t.a", true).unwrap();
         assert_eq!(reg.analyzers().len(), 1);
         assert!(reg.set_enabled("tidak.ada", true).is_err());
+    }
+
+    #[test]
+    fn installed_plugin_has_installed_state() {
+        let mut reg = PluginRegistry::new();
+
+        reg.install(&Dummy {
+            id: "t.a",
+            major: 0,
+        })
+        .unwrap();
+
+        assert_eq!(
+            reg.get_state("t.a").unwrap(),
+            PluginState::Installed
+        );
     }
 }
