@@ -4,12 +4,18 @@
 //! TODO kelompok 6: lifecycle (init/shutdown), discovery dari direktori/manifest, versioning
 //! dan rollback, isolasi kegagalan plugin.
 
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use soil_contracts::{
-    Analyzer, ContractError, Plugin, PluginHost, PluginMeta, Result, RuleEvaluator,
+    Analyzer, ContractError, Plugin, PluginHost, PluginKind, PluginMeta, Result, RuleEvaluator,
 };
+
+struct LifecycleDummy {
+    initialized: AtomicBool,
+    shutdown_called: AtomicBool,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PluginState {
@@ -64,6 +70,7 @@ impl PluginRegistry {
         Ok(())
     }
 
+    /// 
     pub fn initialize(&mut self, id: &str) -> Result<()> {
         let plugin = self.plugins
             .get(id)
@@ -81,6 +88,33 @@ impl PluginRegistry {
         match plugin.init() {
             Ok(()) => {
                 self.states.insert(id.to_string(), PluginState::Running);
+                Ok(())
+            }
+            Err(err) => {
+                self.states.insert(id.to_string(), PluginState::Failed);
+                Err(err)
+            }
+        }
+    }
+
+    ///
+    pub fn shutdown(&mut self, id: &str) -> Result<()> {
+        let plugin = self.plugins
+            .get(id)
+            .cloned()
+            .ok_or_else(|| ContractError::NotFound(format!("plugin {id}")))?;
+
+        let state = self.get_state(id)?;
+
+        if state != PluginState::Running {
+            return Err(ContractError::Plugin(format!(
+                "plugin {id} cannot be shut down from state {state:?}"
+            )));
+        }
+
+        match plugin.shutdown() {
+            Ok(()) => {
+                self.states.insert(id.to_string(), PluginState::Stopped);
                 Ok(())
             }
             Err(err) => {
@@ -150,6 +184,32 @@ impl PluginHost for PluginRegistry {
     }
 }
 
+impl Plugin for LifecycleDummy {
+    fn meta(&self) -> PluginMeta {
+        PluginMeta {
+            id: "t.lifecycle".into(),
+            name: "lifecycle dummy".into(),
+            version: "0.0.1".into(),
+            kind: PluginKind::Analytics,
+            description: String::new(),
+            requires_contracts_major: 0,
+        }
+    }
+
+    fn register(&self, _host: &mut dyn PluginHost) -> Result<()> {
+        Ok(())
+    }
+
+    fn init(&self) -> Result<()> {
+        self.initialized.store(true, Ordering::SeqCst);
+        Ok(())
+    }
+
+    fn shutdown(&self) -> Result<()> {
+        self.shutdown_called.store(true, Ordering::SeqCst);
+        Ok(())
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -293,5 +353,78 @@ mod tests {
         reg.initialize("t.a").unwrap();
 
         assert!(reg.initialize("t.a").is_err());
+    }
+
+    #[test]
+    fn shutdown_plugin_changes_state_to_stopped() {
+        let mut reg = PluginRegistry::new();
+
+        reg.install(Arc::new(Dummy {
+            id: "t.a",
+            major: 0,
+        }))
+        .unwrap();
+
+        reg.initialize("t.a").unwrap();
+        reg.shutdown("t.a").unwrap();
+
+        assert_eq!(
+            reg.get_state("t.a").unwrap(),
+            PluginState::Stopped
+        );
+    }
+
+    #[test]
+    fn shutdown_before_initialize_fails() {
+        let mut reg = PluginRegistry::new();
+
+        reg.install(Arc::new(Dummy {
+            id: "t.a",
+            major: 0,
+        }))
+        .unwrap();
+
+        assert!(reg.shutdown("t.a").is_err());
+
+        assert_eq!(
+            reg.get_state("t.a").unwrap(),
+            PluginState::Installed
+        );
+    }
+
+    #[test]
+    fn shutdown_twice_fails() {
+        let mut reg = PluginRegistry::new();
+
+        reg.install(Arc::new(Dummy {
+            id: "t.a",
+            major: 0,
+        }))
+        .unwrap();
+
+        reg.initialize("t.a").unwrap();
+        reg.shutdown("t.a").unwrap();
+
+        assert!(reg.shutdown("t.a").is_err());
+    }
+
+    #[test]
+    fn lifecycle_callbacks_are_called() {
+        let mut reg = PluginRegistry::new();
+
+        let plugin = Arc::new(LifecycleDummy {
+            initialized: AtomicBool::new(false),
+            shutdown_called: AtomicBool::new(false),
+        });
+
+        reg.install(plugin.clone()).unwrap();
+
+        reg.initialize("t.lifecycle").unwrap();
+
+        assert!(plugin.initialized.load(Ordering::SeqCst));
+
+        reg.shutdown("t.lifecycle").unwrap();
+
+        assert!(plugin.shutdown_called.load(Ordering::SeqCst));
     }
 }
