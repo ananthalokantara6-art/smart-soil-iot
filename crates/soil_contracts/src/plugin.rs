@@ -48,4 +48,12 @@ pub trait PluginHost: Send {
 pub trait Plugin: Send + Sync {
     fn meta(&self) -> PluginMeta;
     fn register(&self, host: &mut dyn PluginHost) -> Result<()>;
+
+    fn init(&self) -> Result<()> {
+        Ok(())
+    }
+
+    fn shutdown(&self) -> Result<()> {
+        Ok(())
+    }
 }
