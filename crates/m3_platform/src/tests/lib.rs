@@ -152,3 +152,85 @@ async fn alerts_are_stored() {
     assert_eq!(p.alerts_for(&plot).unwrap().len(), 1);
     assert!(p.alerts_for(&PlotId::new()).unwrap().is_empty());
 }
+
+fn alert(plot: PlotId, message: &str) -> Alert {
+    Alert {
+        plot_id: plot,
+        ts: Utc::now(),
+        level: AlertLevel::Info,
+        message: message.into(),
+        provenance: Provenance {
+            source: "test".into(),
+            version: "0".into(),
+            method: "manual".into(),
+            inputs: vec![],
+            generated_at: Utc::now(),
+        },
+    }
+}
+
+#[tokio::test]
+async fn latest_usable_skips_newer_bad_reading() {
+    let p = MemoryPlatform::new();
+    let plot = PlotId::new();
+    let t0 = Utc::now() - Duration::hours(1);
+    p.ingest_checked(reading(plot, t0)).unwrap();
+    let mut bad = reading(plot, t0 + Duration::minutes(5));
+    bad.quality = QualityFlag::Bad;
+    p.ingest_checked(bad).unwrap();
+
+    let usable = p.latest_usable(&plot).unwrap().unwrap();
+    assert_eq!(usable.ts, t0);
+    let raw = p.latest(&plot).await.unwrap().unwrap();
+    assert_eq!(raw.ts, t0 + Duration::minutes(5));
+    assert!(p.latest_usable(&PlotId::new()).unwrap().is_none());
+}
+
+#[tokio::test]
+async fn oldest_readings_are_dropped_when_limit_is_reached() {
+    let p = MemoryPlatform::with_limits(3, 10);
+    let plot = PlotId::new();
+    let t0 = Utc::now() - Duration::hours(1);
+    let first = reading(plot, t0);
+    assert!(p.ingest_checked(first.clone()).unwrap());
+    for i in 1..5 {
+        assert!(p
+            .ingest_checked(reading(plot, t0 + Duration::minutes(i)))
+            .unwrap());
+    }
+
+    let w = p.window(&plot, t0, t0 + Duration::hours(1)).await.unwrap();
+    assert_eq!(w.readings.len(), 3);
+    assert_eq!(w.readings[0].ts, t0 + Duration::minutes(2));
+    assert!(p.ingest_checked(first).unwrap());
+}
+
+#[tokio::test]
+async fn oldest_alerts_are_dropped_when_limit_is_reached() {
+    let p = MemoryPlatform::with_limits(10, 2);
+    let plot = PlotId::new();
+    for msg in ["satu", "dua", "tiga"] {
+        p.raise(alert(plot, msg)).await.unwrap();
+    }
+    let messages: Vec<String> = p
+        .all_alerts()
+        .unwrap()
+        .into_iter()
+        .map(|a| a.message)
+        .collect();
+    assert_eq!(messages, vec!["dua", "tiga"]);
+}
+
+#[tokio::test]
+async fn blank_or_overlong_alert_messages_are_rejected() {
+    let p = MemoryPlatform::new();
+    let plot = PlotId::new();
+    for bad in ["", "   ", &"x".repeat(501)] {
+        assert!(matches!(
+            p.raise(alert(plot, bad)).await,
+            Err(ContractError::Validation(_))
+        ));
+    }
+    p.raise(alert(plot, &"x".repeat(500))).await.unwrap();
+    assert_eq!(p.all_alerts().unwrap().len(), 1);
+}

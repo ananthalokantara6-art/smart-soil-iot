@@ -74,7 +74,7 @@ pub fn pick_latest(readings: &[SoilReading], fallback: Option<SoilReading>) -> O
         .filter(|r| r.is_usable())
         .max_by_key(|r| r.ts)
         .cloned()
-        .or(fallback)
+        .or(fallback.filter(SoilReading::is_usable))
 }
 
 pub fn build_plot_overview(

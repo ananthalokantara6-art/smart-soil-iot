@@ -7,6 +7,12 @@
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
+<header class="mtop">
+  <svg class="mlogo" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#d8e3c4" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 3c3 4 6 6.5 6 10a6 6 0 0 1-12 0c0-3.5 3-6 6-10z"/></svg>
+  <div class="mt"><b>Smart Soil IoT</b><span>Pemantauan Lahan Gambut</span></div>
+  <span class="live"><i></i><em id="updTxt2">-</em></span>
+  <button id="btnMuat2" type="button" class="icon" aria-label="Muat ulang data"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/></svg></button>
+</header>
 <aside class="side" id="side">
   <button id="btnSide" type="button" class="collapse" aria-label="Perkecil menu samping" aria-expanded="true" title="Perkecil menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
   <div class="brand">
@@ -31,14 +37,16 @@
 <div class="content">
   <div class="bar">
     <div class="card filters">
-      <label for="selPetak">Petak</label><select id="selPetak"></select>
-      <label for="selRentang">Rentang</label>
-      <select id="selRentang">
-        <option value="1">1 jam</option><option value="6">6 jam</option>
-        <option value="24" selected>24 jam</option><option value="168">7 hari</option>
-      </select>
-      <button id="btnReset" type="button" class="ghost">Reset</button>
-      <button id="btnMuat" type="button" class="primary">Muat ulang</button>
+      <div class="fld"><label for="selPetak">Petak</label><select id="selPetak"></select></div>
+      <div class="fld"><label for="selRentang">Rentang</label>
+        <select id="selRentang">
+          <option value="1">1 jam</option><option value="6">6 jam</option>
+          <option value="24" selected>24 jam</option><option value="168">7 hari</option>
+        </select></div>
+      <div class="acts">
+        <button id="btnReset" type="button" class="ghost" aria-label="Reset filter"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.3-5.7M4 4v5h5"/></svg><span class="rt">Reset</span></button>
+        <button id="btnMuat" type="button" class="primary">Muat ulang</button>
+      </div>
     </div>
     <div class="card period">
       <small>Periode terpilih</small>
@@ -50,9 +58,10 @@
   <div id="banner" class="banner" role="status" hidden></div>
 
   <section id="ringkasan">
-    <h2>Ringkasan kondisi</h2>
+    <div id="hero" class="hero" aria-live="polite"></div>
+    <h2 class="hk">Parameter terkini</h2>
     <div id="kpi" class="grid kpi">Memuat...</div>
-    <p id="batas" class="note"></p>
+    <details class="bts"><summary>Lihat batas status</summary><p id="batas" class="note"></p></details>
   </section>
 
   <section id="petak">

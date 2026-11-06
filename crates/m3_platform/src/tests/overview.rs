@@ -101,13 +101,32 @@ fn latest_prefers_usable_over_newer_bad_reading() {
     ];
     let latest = pick_latest(&readings, None).unwrap();
     assert!((latest.moisture_pct - 50.0).abs() < 1e-4);
+}
 
+#[test]
+fn latest_never_falls_back_to_unusable_reading() {
     let only_bad = vec![reading(t0(), 999.0, QualityFlag::Bad)];
-    let fallback = reading(t0(), 1.0, QualityFlag::Bad);
+    let bad_fallback = reading(t0(), 1.0, QualityFlag::Bad);
+    assert_eq!(pick_latest(&only_bad, Some(bad_fallback)), None);
+
+    let good_fallback = reading(t0(), 55.0, QualityFlag::Good);
     assert_eq!(
-        pick_latest(&only_bad, Some(fallback.clone())),
-        Some(fallback)
+        pick_latest(&only_bad, Some(good_fallback.clone())),
+        Some(good_fallback)
     );
+}
+
+#[test]
+fn overview_latest_is_empty_when_only_bad_data_exists() {
+    let w = window(1, 2);
+    let readings = vec![reading(
+        t0() + Duration::minutes(5),
+        999.0,
+        QualityFlag::Bad,
+    )];
+    let o = build_plot_overview(meta(), &readings, readings.first().cloned(), w);
+    assert!(o.latest.is_none());
+    assert!(o.series.moisture.iter().all(Option::is_none));
 }
 
 #[test]

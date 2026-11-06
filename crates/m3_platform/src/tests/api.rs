@@ -482,3 +482,76 @@ async fn overview_returns_actual_data_for_dashboard() {
     // dua alert identik dalam jendela cooldown ditampilkan sekali
     assert_eq!(v["alerts"].as_array().unwrap().len(), 1);
 }
+
+#[tokio::test]
+async fn latest_skips_bad_readings_and_is_404_when_only_bad_exist() {
+    let platform = Arc::new(MemoryPlatform::new());
+    let (with_good, only_bad) = (PlotId::new(), PlotId::new());
+    let t = Utc::now() - Duration::hours(1);
+    platform.ingest_checked(sample(with_good, t)).unwrap();
+    let mut bad = sample(with_good, t + Duration::minutes(5));
+    bad.moisture_pct = 10.0;
+    bad.quality = QualityFlag::Bad;
+    platform.ingest_checked(bad).unwrap();
+    let mut bad_only = sample(only_bad, t);
+    bad_only.quality = QualityFlag::Bad;
+    platform.ingest_checked(bad_only).unwrap();
+    let addr = spawn(router(platform)).await;
+
+    let (status, resp) = call(
+        addr,
+        "GET",
+        &format!("/api/v1/plots/{with_good}/latest"),
+        &[],
+        "",
+    )
+    .await;
+    assert_eq!(status, 200);
+    assert_eq!(json(&resp)["moisture_pct"].as_f64(), Some(60.0));
+
+    let (status, _) = call(
+        addr,
+        "GET",
+        &format!("/api/v1/plots/{only_bad}/latest"),
+        &[],
+        "",
+    )
+    .await;
+    assert_eq!(status, 404);
+}
+
+#[tokio::test]
+async fn series_rejects_ranges_longer_than_90_days() {
+    let addr = spawn(router(Arc::new(MemoryPlatform::new()))).await;
+    let plot = PlotId::new();
+    let too_long = format!(
+        "/api/v1/plots/{plot}/series?param=ph&from=2025-01-01T00:00:00Z&to=2026-01-01T00:00:00Z"
+    );
+    assert_eq!(call(addr, "GET", &too_long, &[], "").await.0, 400);
+
+    let ok = format!(
+        "/api/v1/plots/{plot}/series?param=ph&from=2026-01-01T00:00:00Z&to=2026-01-31T00:00:00Z"
+    );
+    assert_eq!(call(addr, "GET", &ok, &[], "").await.0, 200);
+}
+
+#[tokio::test]
+async fn batch_over_the_limit_is_rejected() {
+    let addr = spawn(router(Arc::new(MemoryPlatform::new()))).await;
+    let r = sample(PlotId::new(), Utc::now() - Duration::minutes(1));
+
+    let too_many = serde_json::to_string(&vec![r.clone(); MAX_BATCH_READINGS + 1]).unwrap();
+    assert_eq!(
+        call(addr, "POST", "/api/v1/readings/batch", &[], &too_many)
+            .await
+            .0,
+        400
+    );
+
+    let at_limit = serde_json::to_string(&vec![r; MAX_BATCH_READINGS]).unwrap();
+    let (status, resp) = call(addr, "POST", "/api/v1/readings/batch", &[], &at_limit).await;
+    assert_eq!(status, 202);
+    let v = json(&resp);
+    assert_eq!(v["received"], MAX_BATCH_READINGS);
+    assert_eq!(v["inserted"], 1);
+}

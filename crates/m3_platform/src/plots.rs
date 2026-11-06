@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use soil_contracts::{ContractError, PlotId, Result};
 
+const MAX_TEXT_CHARS: usize = 100;
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PlotMeta {
     pub plot_id: PlotId,
@@ -30,6 +32,25 @@ impl PlotMeta {
         if name.is_empty() {
             return Err(ContractError::Validation("nama petak kosong".into()));
         }
+        if name.chars().count() > MAX_TEXT_CHARS {
+            return Err(ContractError::Validation(
+                "nama petak lebih dari 100 karakter".into(),
+            ));
+        }
+        let plant = new
+            .plant
+            .as_deref()
+            .map(str::trim)
+            .filter(|p| !p.is_empty())
+            .map(str::to_string);
+        if plant
+            .as_ref()
+            .is_some_and(|p| p.chars().count() > MAX_TEXT_CHARS)
+        {
+            return Err(ContractError::Validation(
+                "nama tanaman lebih dari 100 karakter".into(),
+            ));
+        }
         if new.latitude.is_some_and(|v| !(-90.0..=90.0).contains(&v)) {
             return Err(ContractError::Validation("latitude di luar -90..90".into()));
         }
@@ -50,7 +71,7 @@ impl PlotMeta {
             latitude: new.latitude,
             longitude: new.longitude,
             area_ha: new.area_ha,
-            plant: new.plant,
+            plant,
         })
     }
 }

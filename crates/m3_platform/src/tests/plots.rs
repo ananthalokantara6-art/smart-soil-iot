@@ -54,3 +54,27 @@ fn coordinates_and_area_are_validated() {
     p.area_ha = Some(1.5);
     assert!(PlotMeta::from_new(p).is_ok());
 }
+
+#[test]
+fn overlong_names_are_rejected() {
+    assert!(PlotMeta::from_new(new_plot(&"a".repeat(100))).is_ok());
+    assert!(PlotMeta::from_new(new_plot(&"a".repeat(101))).is_err());
+
+    let mut p = new_plot("X");
+    p.plant = Some("b".repeat(101));
+    assert!(PlotMeta::from_new(p).is_err());
+}
+
+#[test]
+fn plant_is_trimmed_and_blank_becomes_none() {
+    let mut p = new_plot("X");
+    p.plant = Some("  nanas ".into());
+    assert_eq!(
+        PlotMeta::from_new(p).unwrap().plant.as_deref(),
+        Some("nanas")
+    );
+
+    let mut p = new_plot("X");
+    p.plant = Some("   ".into());
+    assert_eq!(PlotMeta::from_new(p).unwrap().plant, None);
+}

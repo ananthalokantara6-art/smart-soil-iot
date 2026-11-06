@@ -10,7 +10,7 @@ pub mod api;
 pub mod overview;
 pub mod plots;
 
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::sync::Mutex;
 
 use aggregate::{validate_integrity, validate_reading};
@@ -22,17 +22,28 @@ use soil_contracts::{
     Result, SoilReading,
 };
 
+pub const DEFAULT_MAX_READINGS: usize = 100_000;
+pub const DEFAULT_MAX_ALERTS: usize = 5_000;
+const MAX_ALERT_MESSAGE_CHARS: usize = 500;
+
 #[derive(Default)]
 struct ReadingStore {
-    readings: Vec<SoilReading>,
+    readings: VecDeque<SoilReading>,
     seen: HashSet<(DeviceId, i64)>,
 }
 
-#[derive(Default)]
 pub struct MemoryPlatform {
     store: Mutex<ReadingStore>,
-    alerts: Mutex<Vec<Alert>>,
+    alerts: Mutex<VecDeque<Alert>>,
     plots: Mutex<HashMap<PlotId, PlotMeta>>,
+    max_readings: usize,
+    max_alerts: usize,
+}
+
+impl Default for MemoryPlatform {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 fn poisoned() -> ContractError {
@@ -41,7 +52,17 @@ fn poisoned() -> ContractError {
 
 impl MemoryPlatform {
     pub fn new() -> Self {
-        Self::default()
+        Self::with_limits(DEFAULT_MAX_READINGS, DEFAULT_MAX_ALERTS)
+    }
+
+    pub fn with_limits(max_readings: usize, max_alerts: usize) -> Self {
+        Self {
+            store: Mutex::default(),
+            alerts: Mutex::default(),
+            plots: Mutex::default(),
+            max_readings: max_readings.max(1),
+            max_alerts: max_alerts.max(1),
+        }
     }
 
     pub fn ingest_checked(&self, reading: SoilReading) -> Result<bool> {
@@ -55,7 +76,15 @@ impl MemoryPlatform {
             return Ok(false);
         }
 
-        store.readings.push(reading);
+        store.readings.push_back(reading);
+        while store.readings.len() > self.max_readings {
+            let Some(old) = store.readings.pop_front() else {
+                break;
+            };
+            store
+                .seen
+                .remove(&(old.device_id, old.ts.timestamp_millis()));
+        }
         Ok(true)
     }
 
@@ -74,8 +103,24 @@ impl MemoryPlatform {
         Ok(all)
     }
 
+    pub fn latest_usable(&self, plot_id: &PlotId) -> Result<Option<SoilReading>> {
+        let guard = self.store.lock().map_err(|_| poisoned())?;
+        Ok(guard
+            .readings
+            .iter()
+            .filter(|r| r.plot_id == *plot_id && r.is_usable())
+            .max_by_key(|r| r.ts)
+            .cloned())
+    }
+
     pub fn all_alerts(&self) -> Result<Vec<Alert>> {
-        Ok(self.alerts.lock().map_err(|_| poisoned())?.clone())
+        Ok(self
+            .alerts
+            .lock()
+            .map_err(|_| poisoned())?
+            .iter()
+            .cloned()
+            .collect())
     }
 
     pub fn alerts_for(&self, plot_id: &PlotId) -> Result<Vec<Alert>> {
@@ -134,7 +179,20 @@ impl ReadingSource for MemoryPlatform {
 #[async_trait]
 impl AlertSink for MemoryPlatform {
     async fn raise(&self, alert: Alert) -> Result<()> {
-        self.alerts.lock().map_err(|_| poisoned())?.push(alert);
+        let message = alert.message.trim();
+        if message.is_empty() {
+            return Err(ContractError::Validation("pesan peringatan kosong".into()));
+        }
+        if message.chars().count() > MAX_ALERT_MESSAGE_CHARS {
+            return Err(ContractError::Validation(format!(
+                "pesan peringatan lebih dari {MAX_ALERT_MESSAGE_CHARS} karakter"
+            )));
+        }
+        let mut guard = self.alerts.lock().map_err(|_| poisoned())?;
+        guard.push_back(alert);
+        while guard.len() > self.max_alerts {
+            guard.pop_front();
+        }
         Ok(())
     }
 }
