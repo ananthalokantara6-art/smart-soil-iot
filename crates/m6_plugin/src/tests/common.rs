@@ -1,11 +1,11 @@
-    use std::sync::atomic::{AtomicBool, Ordering};
+
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
 use async_trait::async_trait;
 
 use soil_contracts::{
-    AnalysisResult, Analyzer, Plugin, PluginHost,
-    PluginKind, PluginMeta, Result, ReadingWindow,
+    AnalysisResult, Analyzer, Plugin, PluginHost, PluginKind, PluginMeta, ReadingWindow, Result,
 };
 
 #[derive(Clone)]

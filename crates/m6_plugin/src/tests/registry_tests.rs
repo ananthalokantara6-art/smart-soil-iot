@@ -82,8 +82,5 @@ fn installed_plugin_has_installed_state() {
     }))
     .unwrap();
 
-    assert_eq!(
-        reg.get_state("t.a").unwrap(),
-        PluginState::Installed
-    );
+    assert_eq!(reg.get_state("t.a").unwrap(), PluginState::Installed);
 }

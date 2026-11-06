@@ -17,10 +17,7 @@ fn initialize_plugin_changes_state_to_running() {
 
     reg.initialize("t.a").unwrap();
 
-    assert_eq!(
-        reg.get_state("t.a").unwrap(),
-        PluginState::Running
-    );
+    assert_eq!(reg.get_state("t.a").unwrap(), PluginState::Running);
 }
 
 #[test]
@@ -51,10 +48,7 @@ fn shutdown_plugin_changes_state_to_stopped() {
     reg.initialize("t.a").unwrap();
     reg.shutdown("t.a").unwrap();
 
-    assert_eq!(
-        reg.get_state("t.a").unwrap(),
-        PluginState::Stopped
-    );
+    assert_eq!(reg.get_state("t.a").unwrap(), PluginState::Stopped);
 }
 
 #[test]
@@ -69,10 +63,7 @@ fn shutdown_before_initialize_fails() {
 
     assert!(reg.shutdown("t.a").is_err());
 
-    assert_eq!(
-        reg.get_state("t.a").unwrap(),
-        PluginState::Installed
-    );
+    assert_eq!(reg.get_state("t.a").unwrap(), PluginState::Installed);
 }
 
 #[test]
@@ -108,5 +99,7 @@ fn lifecycle_callbacks_are_called() {
 
     reg.shutdown("t.lifecycle").unwrap();
 
-    assert!(plugin.shutdown_called.load(std::sync::atomic::Ordering::SeqCst));
+    assert!(plugin
+        .shutdown_called
+        .load(std::sync::atomic::Ordering::SeqCst));
 }

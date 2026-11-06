@@ -7,7 +7,8 @@ impl PluginRegistry {
     // shutdown()
     // get_state()
     pub fn initialize(&mut self, id: &str) -> Result<()> {
-        let plugin = self.plugins
+        let plugin = self
+            .plugins
             .get(id)
             .cloned()
             .ok_or_else(|| ContractError::NotFound(format!("plugin {id}")))?;
@@ -34,7 +35,8 @@ impl PluginRegistry {
 
     ///
     pub fn shutdown(&mut self, id: &str) -> Result<()> {
-        let plugin = self.plugins
+        let plugin = self
+            .plugins
             .get(id)
             .cloned()
             .ok_or_else(|| ContractError::NotFound(format!("plugin {id}")))?;
@@ -58,7 +60,6 @@ impl PluginRegistry {
             }
         }
     }
-
 
     /// Dapatkan state dari plugin
     pub fn get_state(&self, id: &str) -> Result<PluginState> {

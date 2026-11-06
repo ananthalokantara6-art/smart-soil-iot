@@ -2,13 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use soil_contracts::{
-    Analyzer,
-    ContractError,
-    Plugin,
-    PluginHost,
-    PluginMeta,
-    Result,
-    RuleEvaluator,
+    Analyzer, ContractError, Plugin, PluginHost, PluginMeta, Result, RuleEvaluator,
 };
 
 use crate::state::PluginState;
@@ -48,8 +42,7 @@ impl PluginRegistry {
 
         plugin.register(self)?;
 
-        self.states
-            .insert(meta.id.clone(), PluginState::Installed);
+        self.states.insert(meta.id.clone(), PluginState::Installed);
 
         self.plugins.insert(meta.id.clone(), plugin);
 
@@ -58,8 +51,7 @@ impl PluginRegistry {
         Ok(())
     }
 
-    /// 
-    
+    ///
 
     /// Daftar plugin terpasang, urut berdasarkan id.
     pub fn list(&self) -> Vec<(&PluginMeta, bool)> {
@@ -101,7 +93,6 @@ impl PluginRegistry {
             .cloned()
             .collect()
     }
-
 }
 
 impl PluginHost for PluginRegistry {
