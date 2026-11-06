@@ -28,6 +28,7 @@ const DEFAULT_RANGE_HOURS: i64 = 24;
 const DEFAULT_SLOTS: usize = 24;
 const MAX_SLOTS: usize = 240;
 const MAX_COMPARE_PLOTS: usize = 20;
+const MAX_BATCH_READINGS: usize = 5_000;
 const OVERVIEW_ALERT_COOLDOWN_SECS: i64 = 1800;
 const OVERVIEW_ALERT_LIMIT: usize = 200;
 
@@ -126,11 +127,9 @@ async fn create_plot(
 }
 
 async fn latest(State(s): State<AppState>, Path(id): Path<PlotId>) -> ApiResult<SoilReading> {
-    let reading = s
-        .platform
-        .latest(&id)
-        .await?
-        .ok_or_else(|| ContractError::NotFound(format!("belum ada data untuk petak {id}")))?;
+    let reading = s.platform.latest_usable(&id)?.ok_or_else(|| {
+        ContractError::NotFound(format!("belum ada data layak pakai untuk petak {id}"))
+    })?;
     Ok(Json(reading))
 }
 
@@ -162,6 +161,9 @@ async fn series(
     let from = q.from.unwrap_or(to - Duration::hours(DEFAULT_RANGE_HOURS));
     if from >= to {
         return Err(bad_request("'from' harus lebih awal dari 'to'"));
+    }
+    if to - from > Duration::hours(MAX_RANGE_HOURS) {
+        return Err(bad_request("rentang waktu maksimal 90 hari"));
     }
     let interval = q
         .interval_secs
@@ -387,6 +389,9 @@ async fn post_batch(
     Json(readings): Json<Vec<SoilReading>>,
 ) -> Result<(StatusCode, Json<BatchResult>), ApiError> {
     check_token(&s, &headers)?;
+    if readings.len() > MAX_BATCH_READINGS {
+        return Err(bad_request("batch maksimal 5000 pembacaan"));
+    }
 
     let mut result = BatchResult {
         received: readings.len(),

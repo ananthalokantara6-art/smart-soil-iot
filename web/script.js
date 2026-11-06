@@ -19,7 +19,7 @@ const STATUS = {
   no_data: { cls: "ln", text: "Belum ada data" },
 };
 
-// Fungsi murni: nilai + batas -> 0 aman, 1 waspada, 2 bahaya.
+// Fungsi murni
 function levelOf(k, v) {
   const c = PARAM[k];
   if ((c.highBad != null && v > c.highBad) || (c.lowBad != null && v < c.lowBad)) return 2;
@@ -27,19 +27,20 @@ function levelOf(k, v) {
   return 0;
 }
 
-/* ===== DATA ===== */
+/* DATA */
 async function ambilData(jam) {
   const r = await fetch(`${API_BASE}/api/v1/overview?hours=${jam}&slots=${SLOTS}`);
   if (!r.ok) throw new Error("Gagal memuat data (kode " + r.status + ")");
   return r.json();
 }
 
-/* ===== UTIL ===== */
+/* UTIL */
 const $ = (id) => document.getElementById(id);
 const state = { data: null, petak: "all", param: "moisture", done: new Set() };
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const has = (v) => v !== null && v !== undefined;
 const fmt = (k, v) => (has(v) ? v.toFixed(PARAM[k].dec).replace(".", ",") + (PARAM[k].unit ? " " + PARAM[k].unit : "") : "-");
+const fmtU = (k, v) => (has(v) ? v.toFixed(PARAM[k].dec).replace(".", ",") + (PARAM[k].unit ? `<small class="u"> ${PARAM[k].unit}</small>` : "") : "-");
 const tag = (cls, text) => `<span class="tag ${cls}">${esc(text)}</span>`;
 const levelTag = (l) => tag("l" + l, LEVEL[l]);
 const firstNN = (a) => a.find(has);
@@ -50,7 +51,7 @@ const warnaPetak = (p) => PC[state.data.plots.indexOf(p) % PC.length];
 const nilaiTerbaru = (p, k) => (p.latest ? p.latest[PARAM[k].field] : null);
 const rataList = (xs) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
 
-// Rata-rata deret beberapa petak per slot waktu; slot tanpa data satu pun tetap null.
+// Rata-rata deret beberapa petak per slot waktu
 const rataSeri = (list, k) =>
   Array.from({ length: SLOTS }, (_, i) => rataList(list.map((p) => p.series[k][i]).filter(has)));
 
@@ -63,14 +64,14 @@ const lalu = (iso) => {
   return Math.round(m / 1440) + " hari lalu";
 };
 const waktu = (iso) => new Date(iso).toLocaleString("id-ID", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
-const kunciAlert = (a) => a.ts + "|" + a.plot_id + "|" + a.message; // penanda tetap meski data dimuat ulang
+const kunciAlert = (a) => a.ts + "|" + a.plot_id + "|" + a.message;
 
 function spark(arr, color) {
   const pts = arr.map((v, i) => [i, v]).filter(([, v]) => has(v));
-  if (pts.length < 2) return `<svg viewBox="0 0 120 36" width="120" height="36" aria-hidden="true"></svg>`;
+  if (pts.length < 2) return `<svg viewBox="0 0 120 36" width="120" height="36" preserveAspectRatio="none" aria-hidden="true"></svg>`;
   const vals = pts.map(([, v]) => v), min = Math.min(...vals), max = Math.max(...vals), W = 120, H = 36, r = max - min || 1;
   const line = pts.map(([i, v]) => `${(i / (arr.length - 1)) * W},${H - 4 - ((v - min) / r) * (H - 8)}`).join(" ");
-  return `<svg viewBox="0 0 ${W} ${H}" width="120" height="36" aria-hidden="true"><polyline points="${line}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
+  return `<svg viewBox="0 0 ${W} ${H}" width="120" height="36" preserveAspectRatio="none" aria-hidden="true"><polyline points="${line}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
 }
 
 function gauge(v) {
@@ -90,7 +91,7 @@ function tampilkanBanner(teks, galat) {
   b.textContent = teks || "";
 }
 
-/* ===== RENDER ===== */
+/* RENDER */
 function renderPilihan() {
   if (state.petak !== "all" && !state.data.plots.some((p) => p.plot.plot_id === state.petak)) state.petak = "all";
   $("selPetak").innerHTML = `<option value="all">Semua petak</option>` + state.data.plots.map((p) => `<option value="${esc(p.plot.plot_id)}">${esc(nama(p))}</option>`).join("");
@@ -113,6 +114,47 @@ function renderChips() {
   document.querySelectorAll(".chips").forEach((c) => (c.innerHTML = h));
 }
 
+const HERO_C = ["#a8d48f", "#f2c660", "#ff9a8a"];
+const HERO_ICO = [
+  '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.7 2.7L16 9.5"/></svg>',
+  '<svg viewBox="0 0 24 24"><path d="M12 3l10 18H2z"/><path d="M12 10v4M12 17.5v.5"/></svg>',
+  '<svg viewBox="0 0 24 24"><path d="M12 3l10 18H2z"/><path d="M12 10v4M12 17.5v.5"/></svg>',
+];
+
+// status terburuk
+function renderHero() {
+  const list = aktif(), cnt = [0, 0, 0], isu = [];
+  list.forEach((p) => Object.keys(PARAM).forEach((k) => {
+    const v = nilaiTerbaru(p, k); if (!has(v)) return;
+    const l = levelOf(k, v); cnt[l]++;
+    if (l > 0) isu.push({ l, t: `${nama(p)} · ${PARAM[k].label}` });
+  }));
+  const tot = cnt[0] + cnt[1] + cnt[2];
+  const online = list.filter((p) => p.health && p.health.status === "online").length;
+  const nmP = Object.fromEntries(state.data.plots.map((p) => [p.plot.plot_id, nama(p)]));
+
+  const ak = state.data.alerts
+    .filter((a) => ALERT_LEVEL[a.level] >= 1 && (state.petak === "all" || a.plot_id === state.petak) && !state.done.has(kunciAlert(a)))
+    .sort((a, b) => new Date(b.ts) - new Date(a.ts));
+  const aBahaya = ak.filter((a) => a.level === "critical"), aWasp = ak.filter((a) => a.level === "warning"), nAlert = ak.length;
+  const worst = Math.max(cnt[2] ? 2 : cnt[1] ? 1 : 0, aBahaya.length ? 2 : aWasp.length ? 1 : 0);
+  const ringkas = (arr) => `${nmP[arr[0].plot_id] || "Petak"}: ${arr[0].message}` + (arr.length > 1 ? ` +${arr.length - 1} lainnya` : "");
+  const isuTeks = (lv) => { const ss = isu.filter((x) => x.l === lv); return ss.slice(0, 2).map((x) => x.t).join(", ") + (ss.length > 2 ? ` +${ss.length - 2} lainnya` : ""); };
+  let judul, sub;
+  if (!tot && !worst) { judul = "Belum ada pembacaan"; sub = "Menunggu data dari sensor"; }
+  else if (!worst) { judul = "Semua kondisi aman"; sub = `${list.length} petak dipantau · ${$("periodTxt").textContent}`; }
+  else if (cnt[2]) { judul = `${cnt[2]} pembacaan dalam bahaya`; sub = isuTeks(2); }
+  else if (aBahaya.length) { judul = `${aBahaya.length} peringatan bahaya belum ditangani`; sub = ringkas(aBahaya) + (cnt[1] ? ` · ${cnt[1]} pembacaan waspada` : ""); }
+  else if (cnt[1]) { judul = `${cnt[1]} pembacaan perlu diwaspadai`; sub = isuTeks(1) + (aWasp.length ? ` · ${aWasp.length} peringatan waspada` : ""); }
+  else { judul = `${aWasp.length} peringatan waspada belum ditangani`; sub = ringkas(aWasp); }
+  const warna = tot || worst ? HERO_C[worst] : "#c9cfc2";
+  $("hero").innerHTML = `<div class="top"><div class="ico" style="color:${warna}">${HERO_ICO[worst]}</div>
+    <div><h2>${esc(judul)}</h2><p>${esc(sub)}</p></div></div>
+    <div class="stats"><div class="st"><b>${online}/${list.length}</b><span>Petak online</span></div>
+    <div class="st"><b>${nAlert}</b><span>Peringatan aktif</span></div>
+    <div class="st"><b>${cnt[0]}/${tot}</b><span>Pembacaan aman</span></div></div>`;
+}
+
 function renderKpi() {
   const list = aktif();
   $("kpi").innerHTML = Object.keys(PARAM).map((k) => {
@@ -120,7 +162,7 @@ function renderKpi() {
     if (!has(now)) return `<div class="k" style="--c:#b8bdb0"><small>${PARAM[k].label}</small><div class="big">-</div>${spark(s, PARAM[k].color)}<div class="foot"><span>Belum ada data</span>${tag("ln", "Tidak ada data")}</div></div>`;
     const lv = levelOf(k, now), a = firstNN(s), b = lastNN(s), d = has(a) && has(b) ? b - a : null;
     const sel = d === null ? "Perubahan belum bisa dihitung" : `${d >= 0 ? "▲" : "▼"} ${Math.abs(d).toFixed(PARAM[k].dec).replace(".", ",")} sejak awal rentang`;
-    return `<div class="k" style="--c:${LC[lv]}"><small>${PARAM[k].label}</small><div class="big">${fmt(k, now)}</div>${spark(s, PARAM[k].color)}<div class="foot"><span>${sel}</span>${levelTag(lv)}</div></div>`;
+    return `<div class="k" style="--c:${LC[lv]}"><small>${PARAM[k].label}</small><div class="big">${fmtU(k, now)}</div>${spark(s, PARAM[k].color)}<div class="foot"><span>${sel}</span>${levelTag(lv)}</div></div>`;
   }).join("");
 }
 
@@ -139,7 +181,7 @@ function renderPetak() {
 }
 
 function renderGrafik() {
-  const cv = $("chart"), dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = 280, k = state.param, c = PARAM[k];
+  const cv = $("chart"), dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = cv.clientWidth < 520 ? 230 : 280, k = state.param, c = PARAM[k];
   cv.width = W * dpr; cv.height = H * dpr;
   const g = cv.getContext("2d"); g.scale(dpr, dpr); g.clearRect(0, 0, W, H);
   const list = aktif(), batas = [[c.lowBad, LC[2], "Bahaya"], [c.lowWarn, LC[1], "Waspada"], [c.highWarn, LC[1], "Waspada"], [c.highBad, LC[2], "Bahaya"]].filter(([v]) => v != null);
@@ -164,7 +206,7 @@ function renderGrafik() {
   [0, 0.5, 1].forEach((f) => { const t = Math.round(state.data.hours * (1 - f)); g.fillText(f === 1 ? "Kini" : "-" + (t >= 48 ? Math.round(t / 24) + " hr" : t + " j"), L + f * w, H - 8); });
   list.forEach((p) => {
     g.strokeStyle = warnaPetak(p); g.fillStyle = warnaPetak(p); g.lineWidth = 2.5; g.lineJoin = "round";
-    let pen = false; // garis putus di slot yang tidak punya data
+    let pen = false;
     p.series[k].forEach((v, i) => {
       if (!has(v)) { pen = false; return; }
       if (pen) g.lineTo(X(i), Y(v)); else { g.beginPath(); g.moveTo(X(i), Y(v)); pen = true; }
@@ -212,10 +254,10 @@ function renderAlert() {
   }).join("") : `<tr><td colspan="6" class="empty">Tidak ada peringatan pada pilihan ini.</td></tr>`;
 }
 
-const renderFilter = () => { renderKpi(); renderGrafik(); renderHeat(); renderAlert(); };
+const renderFilter = () => { renderHero(); renderKpi(); renderGrafik(); renderHeat(); renderAlert(); };
 function renderAll() { renderPilihan(); renderPetak(); renderFilter(); renderBanding(); renderDonut(); }
 
-/* ===== MUAT & EVENT ===== */
+/* MUAT & EVENT */
 async function muat(diam) {
   if (!diam) $("kpi").textContent = "Memuat...";
   try {
@@ -223,10 +265,11 @@ async function muat(diam) {
     state.data = data;
     const j = data.hours; $("periodTxt").textContent = j >= 48 ? Math.round(j / 24) + " hari terakhir" : j + " jam terakhir";
     $("updTxt").textContent = new Date(data.generated_at).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+    $("updTxt2").textContent = $("updTxt").textContent;
     if (!data.plots.length) {
       tampilkanBanner("Belum ada petak terdaftar. Daftarkan lewat POST /api/v1/plots atau jalankan demo_server.", false);
       $("kpi").innerHTML = `<div class="empty">Belum ada data untuk ditampilkan.</div>`;
-      ["petakList", "heat", "bars", "donut", "legend"].forEach((id) => ($(id).innerHTML = ""));
+      ["hero", "petakList", "heat", "bars", "donut", "legend"].forEach((id) => ($(id).innerHTML = ""));
       $("alertBody").innerHTML = `<tr><td colspan="6" class="empty">Belum ada peringatan.</td></tr>`;
       const cv = $("chart"); cv.getContext("2d").clearRect(0, 0, cv.width, cv.height);
       return;
@@ -240,6 +283,7 @@ async function muat(diam) {
 }
 
 $("btnMuat").onclick = () => muat(false);
+$("btnMuat2").onclick = () => muat(false);
 $("selRentang").onchange = () => muat(false);
 $("btnReset").onclick = () => { state.petak = "all"; state.param = "moisture"; $("selRentang").value = "24"; $("selLevel").value = "0"; $("selParam").value = "moisture"; muat(false); };
 $("selPetak").onchange = (e) => { state.petak = e.target.value; renderFilter(); };
@@ -247,7 +291,7 @@ $("selLevel").onchange = () => state.data && renderAlert();
 $("selParam").onchange = () => state.data && renderBanding();
 document.addEventListener("click", (e) => {
   const c = e.target.closest(".chips button"); if (c && state.data) { state.param = c.dataset.p; renderChips(); renderGrafik(); renderHeat(); }
-  const a = e.target.closest("button[data-a]"); if (a && state.data) { const key = a.dataset.a; state.done.has(key) ? state.done.delete(key) : state.done.add(key); renderAlert(); }
+  const a = e.target.closest("button[data-a]"); if (a && state.data) { const key = a.dataset.a; state.done.has(key) ? state.done.delete(key) : state.done.add(key); renderAlert(); renderHero(); }
 });
 window.addEventListener("resize", () => state.data && state.data.plots.length && renderGrafik());
 
@@ -260,7 +304,7 @@ const io = new IntersectionObserver((es) => es.forEach((en) => {
 }), { rootMargin: "-30% 0px -60% 0px" });
 document.querySelectorAll("main, section").forEach((s) => io.observe(s));
 
-/* navigasi HP: panel "Lainnya" berisi menu yang tidak muat di bar bawah */
+/* navbar mobile */
 const sheet = $("moreSheet"), backdrop = $("moreBackdrop"), btnMore = $("btnMore");
 sheet.innerHTML = [...document.querySelectorAll("#nav a.extra")].map((a) => a.outerHTML.replace('class="extra"', 'role="menuitem"')).join("");
 function aturSheet(buka) {
@@ -273,7 +317,7 @@ sheet.addEventListener("click", (e) => { if (e.target.closest("a")) aturSheet(fa
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") aturSheet(false); });
 window.addEventListener("resize", () => aturSheet(false));
 
-/* sidebar: perkecil/lebarkan, ingat pilihan terakhir */
+/* sidebar */
 function aturSidebar(mini) {
   document.body.classList.toggle("mini", mini);
   const b = $("btnSide");
@@ -290,6 +334,9 @@ $("btnSide").onclick = () => {
   aturSidebar(m);
   try { localStorage.setItem("sidebarMini", m ? "1" : "0"); } catch (e) {}
 };
+
+// batas status
+if (matchMedia("(min-width:901px)").matches) document.querySelector(".bts").open = true;
 
 muat(false);
 setInterval(() => muat(true), 60000);
