@@ -7,22 +7,30 @@ use soil_contracts::{
 
 use crate::state::PluginState;
 
+/// Meyimpan informasi plugin teregistrasi.
 #[derive(Default)]
 pub struct PluginRegistry {
+    /// Metadata plugin, dengan index id plugin.
     metas: HashMap<String, PluginMeta>,
+    /// Menyimpan plugin yang sudah terkompilasi.
     pub(crate) plugins: HashMap<String, Arc<dyn Plugin>>,
+    /// Menyimpan kapabilitas analiss.
     analyzers: Vec<Arc<dyn Analyzer>>,
+    /// Menyimpan kapabilitas evaluator.
     evaluators: Vec<Arc<dyn RuleEvaluator>>,
+    /// List plugin yang dimatikan.
     disabled: HashSet<String>,
+    /// Status dari semua plugin.
     pub(crate) states: HashMap<String, PluginState>,
 }
 
 impl PluginRegistry {
+    /// Pure Function: Mengembalikan register plugin.
     pub fn new() -> Self {
         Self::default()
     }
 
-    /// Memasang plugin: periksa kompatibilitas dan duplikasi, lalu biarkan plugin mendaftar.
+    /// Memasang plugin, periksa kompatibilitas dan duplikasi, lalu biarkan plugin mendaftar.
     pub fn install(&mut self, plugin: Arc<dyn Plugin>) -> Result<()> {
         let meta = plugin.meta();
 
@@ -51,9 +59,7 @@ impl PluginRegistry {
         Ok(())
     }
 
-    ///
-
-    /// Daftar plugin terpasang, urut berdasarkan id.
+    /// Pure Function: Daftar plugin terpasang, urut berdasarkan id.
     pub fn list(&self) -> Vec<(&PluginMeta, bool)> {
         let mut items: Vec<_> = self
             .metas
@@ -64,6 +70,7 @@ impl PluginRegistry {
         items
     }
 
+    /// Menambah atau menghapus plugin pada atribut `disabled`
     pub fn set_enabled(&mut self, id: &str, enabled: bool) -> Result<()> {
         if !self.metas.contains_key(id) {
             return Err(ContractError::NotFound(format!("plugin {id}")));
@@ -76,7 +83,7 @@ impl PluginRegistry {
         Ok(())
     }
 
-    /// Analyzer yang sedang aktif.
+    /// Pure Function: Kembalikan Analyzer yang sedang aktif.
     pub fn analyzers(&self) -> Vec<Arc<dyn Analyzer>> {
         self.analyzers
             .iter()
@@ -85,7 +92,7 @@ impl PluginRegistry {
             .collect()
     }
 
-    /// Evaluator aturan yang sedang aktif.
+    /// Pure Function: kembalikan Evaluator aturan yang sedang aktif.
     pub fn evaluators(&self) -> Vec<Arc<dyn RuleEvaluator>> {
         self.evaluators
             .iter()
@@ -96,10 +103,12 @@ impl PluginRegistry {
 }
 
 impl PluginHost for PluginRegistry {
+    /// Tambahkan analyzer ke register
     fn register_analyzer(&mut self, analyzer: Arc<dyn Analyzer>) {
         self.analyzers.push(analyzer);
     }
 
+    /// Tambahkan evalutaor ke register
     fn register_rule_evaluator(&mut self, evaluator: Arc<dyn RuleEvaluator>) {
         self.evaluators.push(evaluator);
     }

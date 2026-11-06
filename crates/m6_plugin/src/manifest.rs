@@ -2,6 +2,7 @@ use std::path::Path;
 
 use soil_contracts::{ContractError, PluginMeta, Result};
 
+/// Membaca Manifest TOML dari plugin
 pub fn read_manifest(path: &Path) -> Result<PluginMeta> {
     let content = std::fs::read_to_string(path).map_err(|error| {
         ContractError::Plugin(format!(
@@ -11,6 +12,9 @@ pub fn read_manifest(path: &Path) -> Result<PluginMeta> {
     })?;
 
     toml::from_str::<PluginMeta>(&content).map_err(|error| {
-        ContractError::Plugin(format!("invalid manifest {}: {error}", path.display()))
+        ContractError::Plugin(format!(
+            "invalid manifest {}: {error}",
+            path.display()
+        ))
     })
 }

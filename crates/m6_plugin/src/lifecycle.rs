@@ -3,10 +3,9 @@ use crate::state::PluginState;
 use soil_contracts::{ContractError, Result};
 
 impl PluginRegistry {
-    // initialize()
-    // shutdown()
-    // get_state()
-    pub fn initialize(&mut self, id: &str) -> Result<()> {
+
+    /// Inisiasi plugin jika status dari plugin dengan `id` adalah `Installed` atau `Stopped`
+    pub fn initialize(&mut self, id: &str) -> Result<()> {  
         let plugin = self
             .plugins
             .get(id)
@@ -33,7 +32,7 @@ impl PluginRegistry {
         }
     }
 
-    ///
+    /// Hentikan plugin dengan `id`
     pub fn shutdown(&mut self, id: &str) -> Result<()> {
         let plugin = self
             .plugins
@@ -61,7 +60,8 @@ impl PluginRegistry {
         }
     }
 
-    /// Dapatkan state dari plugin
+    /// Pure Function
+    /// Kembalikan state dari plugin `id`
     pub fn get_state(&self, id: &str) -> Result<PluginState> {
         self.states
             .get(id)

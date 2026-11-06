@@ -6,22 +6,14 @@ use soil_contracts::{ContractError, PluginMeta, Result};
 
 use crate::manifest::read_manifest;
 
-/// Metadata for a discovered plugin.
-///
-/// This does not contain an executable plugin instance.
+/// Metadata untuk plugin yang telah ditemukan.
 #[derive(Debug, Clone)]
 pub struct DiscoveredPlugin {
     pub meta: PluginMeta,
     pub manifest_path: PathBuf,
 }
 
-/// Discovers plugins from immediate subdirectories.
-///
-/// Expected structure:
-///
-/// plugins/
-///   plugin_a/plugin.toml
-///   plugin_b/plugin.toml
+/// Mencari plugin pada direktori yang ditentukan
 pub fn discover_plugins(directory: impl AsRef<Path>) -> Result<Vec<DiscoveredPlugin>> {
     let directory = directory.as_ref();
 
