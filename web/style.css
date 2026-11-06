@@ -86,3 +86,50 @@ tr.done td{opacity:.5}
 .note{font-size:12.5px;color:var(--muted);margin:10px 2px 0}
 .pk .loc{font-size:13px;color:var(--muted);margin:2px 0 6px}
 .b .n{width:120px}
+
+/* ===== sidebar bisa diminimize ===== */
+.side{transition:width .2s}
+.content{transition:margin-left .2s}
+.collapse{align-self:flex-end;min-height:36px;width:36px;padding:0;display:grid;place-items:center;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:10px;cursor:pointer}
+.collapse svg{width:18px;height:18px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .2s}
+body.mini .side{width:72px;padding:20px 10px;align-items:center}
+body.mini .content{margin-left:72px}
+body.mini .collapse{align-self:center}
+body.mini .collapse svg{transform:rotate(180deg)}
+body.mini .brand{padding:10px;background:none;border:0}
+body.mini .brand b,body.mini .brand .sub,body.mini #nav .lbl{display:none}
+body.mini #nav a{justify-content:center;padding:12px}
+h3{font-size:15px;margin:16px 0 6px}
+.devs{margin:0;padding-left:18px}
+.devs a{color:var(--p1)}
+@media (max-width:900px){.collapse{display:none}body.mini .side{width:auto}body.mini .content{margin-left:0}body.mini #nav .lbl{display:inline}}
+@media (prefers-reduced-motion:reduce){.side,.content,.collapse svg{transition:none}}
+
+
+/* ===== navigasi HP: bar bawah + panel "Lainnya" ===== */
+.more,.sheet,.backdrop{display:none}
+@media (max-width:900px){
+  body .side,body.mini .side{position:fixed;inset:auto 12px calc(12px + env(safe-area-inset-bottom,0px)) 12px;width:auto;
+    padding:6px;border-radius:20px;background:#1d2f24;box-shadow:0 10px 30px rgba(0,0,0,.35);
+    flex-direction:row;overflow:visible;gap:0;z-index:30}
+  #nav{flex:1;flex-direction:row;gap:2px}
+  #nav a,body.mini #nav a{flex:1;min-width:0;flex-direction:column;justify-content:center;gap:3px;padding:8px 2px;border-radius:14px;font-size:11px;font-weight:500;text-align:center}
+  #nav a.on,#nav a:hover{box-shadow:none}
+  #nav a.on{background:rgba(255,255,255,.14);box-shadow:inset 0 3px 0 #d4a53a}
+  #nav a .lbl,body.mini #nav .lbl{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #nav a.extra{display:none}
+  .more{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:8px 2px;min-height:0;
+    border:0;border-radius:14px;background:none;color:#fff;font-size:11px;font-weight:500}
+  .more svg{width:20px;height:20px;fill:#fff}
+  .more[aria-expanded="true"],.more.on{background:rgba(255,255,255,.14)}
+  .more.on{box-shadow:inset 0 3px 0 #d4a53a}
+  .backdrop{display:block;position:fixed;inset:0;background:rgba(15,25,18,.45);z-index:20}
+  .sheet{display:flex;flex-direction:column;gap:4px;position:fixed;left:12px;right:12px;
+    bottom:calc(84px + env(safe-area-inset-bottom,0px));padding:8px;border-radius:18px;background:#fdfdf9;
+    box-shadow:0 10px 30px rgba(0,0,0,.3);z-index:25}
+  .sheet a{display:flex;align-items:center;gap:12px;padding:14px;border-radius:12px;color:var(--text);text-decoration:none;font-weight:600}
+  .sheet a:active,.sheet a:hover{background:var(--inset)}
+  .sheet svg{width:20px;height:20px;fill:none;stroke:var(--p1);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+  .backdrop[hidden],.sheet[hidden]{display:none}
+  .content,body.mini .content{margin-left:0;padding:16px 16px calc(110px + env(safe-area-inset-bottom,0px))}
+}
