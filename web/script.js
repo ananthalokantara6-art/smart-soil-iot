@@ -253,9 +253,43 @@ window.addEventListener("resize", () => state.data && state.data.plots.length &&
 
 const links = [...document.querySelectorAll("#nav a")];
 const io = new IntersectionObserver((es) => es.forEach((en) => {
-  if (en.isIntersecting) links.forEach((l) => l.classList.toggle("on", l.getAttribute("href") === "#" + en.target.id));
+  if (en.isIntersecting) {
+    links.forEach((l) => l.classList.toggle("on", l.getAttribute("href") === "#" + en.target.id));
+    btnMore.classList.toggle("on", links.some((l) => l.classList.contains("extra") && l.classList.contains("on")));
+  }
 }), { rootMargin: "-30% 0px -60% 0px" });
 document.querySelectorAll("main, section").forEach((s) => io.observe(s));
+
+/* navigasi HP: panel "Lainnya" berisi menu yang tidak muat di bar bawah */
+const sheet = $("moreSheet"), backdrop = $("moreBackdrop"), btnMore = $("btnMore");
+sheet.innerHTML = [...document.querySelectorAll("#nav a.extra")].map((a) => a.outerHTML.replace('class="extra"', 'role="menuitem"')).join("");
+function aturSheet(buka) {
+  sheet.hidden = backdrop.hidden = !buka;
+  btnMore.setAttribute("aria-expanded", String(buka));
+}
+btnMore.onclick = () => aturSheet(sheet.hidden);
+backdrop.onclick = () => aturSheet(false);
+sheet.addEventListener("click", (e) => { if (e.target.closest("a")) aturSheet(false); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") aturSheet(false); });
+window.addEventListener("resize", () => aturSheet(false));
+
+/* sidebar: perkecil/lebarkan, ingat pilihan terakhir */
+function aturSidebar(mini) {
+  document.body.classList.toggle("mini", mini);
+  const b = $("btnSide");
+  b.setAttribute("aria-expanded", String(!mini));
+  b.setAttribute("aria-label", mini ? "Lebarkan menu samping" : "Perkecil menu samping");
+  b.title = mini ? "Lebarkan menu" : "Perkecil menu";
+  if (state.data && state.data.plots.length) setTimeout(renderGrafik, 220); // ukur ulang kanvas setelah lebar berubah
+}
+let mini = false;
+try { mini = localStorage.getItem("sidebarMini") === "1"; } catch (e) {}
+aturSidebar(mini);
+$("btnSide").onclick = () => {
+  const m = !document.body.classList.contains("mini");
+  aturSidebar(m);
+  try { localStorage.setItem("sidebarMini", m ? "1" : "0"); } catch (e) {}
+};
 
 muat(false);
 setInterval(() => muat(true), 60000);
