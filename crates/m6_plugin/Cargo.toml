@@ -5,6 +5,8 @@ edition.workspace = true
 
 [dependencies]
 soil_contracts = { workspace = true }
+toml = { workspace = true }
 
 [dev-dependencies]
 async-trait = { workspace = true }
+tempfile = { workspace = true }

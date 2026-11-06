@@ -1,0 +1,6 @@
+id = "m4.analytics"
+name = "Soil Analytics"
+version = "0.1.0"
+kind = "analytics"
+description = "Analisis tanah terpadu berbasis komputasi fungsional murni"
+requires_contracts_major = 0
